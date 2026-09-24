@@ -1,13 +1,15 @@
+name: ecommerce-components-dev
+
 services:
   db:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ecommerce_template
-      POSTGRES_PASSWORD: ecommerce_template_dev_password
-      POSTGRES_DB: ecommerce_template
+      POSTGRES_USER: components
+      POSTGRES_PASSWORD: components_dev_password
+      POSTGRES_DB: components
     ports:
-      - "5436:5432"
+      - "127.0.0.1:5437:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
 

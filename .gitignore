@@ -69,3 +69,5 @@ reports/license-inventory.md
 # Local asset audit files
 asset-files.txt
 asset-refs.txt
+
+audit-preview.txt

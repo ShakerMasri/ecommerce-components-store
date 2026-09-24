@@ -5,23 +5,23 @@
 @theme {
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
+    Roboto, "Helvetica Neue", Arial, Tahoma, "Noto Sans", sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 :root {
   color-scheme: light;
-  --surface-page: #f6f1ea;
-  --surface-card: #fffdf8;
-  --surface-muted: #eee5da;
+  --surface-page: #f6f8fa;
+  --surface-card: #ffffff;
+  --surface-muted: #e8eef3;
   --surface-elevated: #ffffff;
-  --ink: #201b17;
-  --ink-muted: #70675f;
-  --line-soft: #dfd3c5;
-  --accent: #8f653f;
-  --accent-strong: #51351f;
-  --accent-soft: #ead9c6;
+  --ink: #14283f;
+  --ink-muted: #526579;
+  --line-soft: #cbd6e0;
+  --accent: #006d77;
+  --accent-strong: #00545e;
+  --accent-soft: #d9eef0;
   --sale-ink: #9b3f24;
   --success-soft: #dcebd9;
   --success-ink: #315f36;
@@ -29,29 +29,29 @@
   --danger-soft: #f3dfdb;
   --danger-ink: #8a342a;
   --danger-line: #dfb8b1;
-  --primary-action-bg: #8f653f;
-  --primary-action-hover-bg: #51351f;
-  --primary-action-ink: #fffdf8;
-  --primary-action-line: #8f653f;
-  --footer-surface: #1b1612;
-  --footer-ink: #f8efe4;
-  --footer-muted: #c7b9aa;
+  --primary-action-bg: #006d77;
+  --primary-action-hover-bg: #00545e;
+  --primary-action-ink: #ffffff;
+  --primary-action-line: #006d77;
+  --footer-surface: #101e2e;
+  --footer-ink: #eaf1f8;
+  --footer-muted: #b1c2d3;
   --footer-line: rgba(255, 255, 255, 0.12);
-  --footer-accent: #d9b98e;
+  --footer-accent: #72d5d5;
 }
 
 html.dark {
   color-scheme: dark;
-  --surface-page: #14110f;
-  --surface-card: #1e1a16;
-  --surface-muted: #2a241f;
-  --surface-elevated: #171310;
-  --ink: #fbf5ed;
-  --ink-muted: #cbbdaf;
-  --line-soft: #463a31;
-  --accent: #d1a777;
-  --accent-strong: #f1d2ac;
-  --accent-soft: #3b2c20;
+  --surface-page: #0e1824;
+  --surface-card: #142335;
+  --surface-muted: #203449;
+  --surface-elevated: #102030;
+  --ink: #eaf1f8;
+  --ink-muted: #b1c2d3;
+  --line-soft: #385066;
+  --accent: #72d5d5;
+  --accent-strong: #a1e7e5;
+  --accent-soft: #183f48;
   --sale-ink: #ffb08b;
   --success-soft: #1d3321;
   --success-ink: #a6d7ab;
@@ -59,15 +59,15 @@ html.dark {
   --danger-soft: #3a201d;
   --danger-ink: #f0aaa1;
   --danger-line: #6b3b35;
-  --primary-action-bg: #f1d2ac;
-  --primary-action-hover-bg: #dfb983;
-  --primary-action-ink: #24170f;
-  --primary-action-line: #f1d2ac;
-  --footer-surface: #0f0d0b;
-  --footer-ink: #fbf5ed;
-  --footer-muted: #b9aa9c;
+  --primary-action-bg: #72d5d5;
+  --primary-action-hover-bg: #a1e7e5;
+  --primary-action-ink: #102830;
+  --primary-action-line: #72d5d5;
+  --footer-surface: #0a121c;
+  --footer-ink: #eaf1f8;
+  --footer-muted: #b1c2d3;
   --footer-line: rgba(255, 255, 255, 0.1);
-  --footer-accent: #d1a777;
+  --footer-accent: #72d5d5;
 }
 
 html {
@@ -109,7 +109,7 @@ a {
 }
 
 .font-editorial {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }
 
 .premium-shell {

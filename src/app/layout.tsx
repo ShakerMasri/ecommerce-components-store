@@ -1,7 +1,6 @@
 import "~/styles/globals.css";
 
 import { type Metadata } from "next";
-import { Geist } from "next/font/google";
 import { Footer } from "~/components/layout/Footer";
 import { Header } from "~/components/layout/Header";
 import { WhatsappSupportShortcut } from "~/components/layout/WhatsappSupportShortcut";
@@ -14,16 +13,11 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
 };
 
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
-
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={geist.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-zinc-50 font-sans text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-50">
         <AppPreferencesProvider>
           <Header />
