@@ -12,7 +12,7 @@ Current scope: colors, fonts, layout, copy and imagery. New commerce features, v
 
 2. **2A: Shared palette and typography — complete, 2026-09-24.** Approved palette and English/Arabic system typography implemented. Mobile/desktop, light/dark review passed across public, product, cart, authentication and admin screens, including selection, quantity changes and admin keyboard focus/hover. Existing screenshots reviewed; no scoped regressions found. Lint/typecheck and static contrast passed. Build/full E2E suite were not run; evidence and limits are in the handoff.
 
-3. **2B: Shared layout and navigation — proposed.** Refine the header, footer, spacing and responsive navigation for the components store. Use existing routes and controls. Review representative desktop/mobile and RTL layouts before expanding the styling.
+3. **2B: Shared layout and navigation - complete, 2026-09-25.** Refined the header, footer and short-page spacing using existing routes and controls. Single responsive navigation keeps all five links visible on mobile; improved touch targets and RTL contact formatting. Lint/typecheck passed. Twenty layout/control combinations across five widths, English/Arabic and light/dark passed; representative screenshots reviewed. Signed-out cart/empty catalog review limits and evidence are in the handoff.
 
 4. **2C: Homepage and catalog presentation — proposed.** Adapt homepage sections, catalog/product layouts, copy and imagery to component shopping. Use verified product information; record asset sources and required notices. Identify functional clothing assumptions for separate decisions.
 
@@ -20,4 +20,4 @@ Current scope: colors, fonts, layout, copy and imagery. New commerce features, v
 
 ## Sequence
 
-2A is complete; stop before 2B. Approved local database initialization and review setup are complete. Later checkpoints remain proposals, not authorization to begin. Keep production readiness as separately scoped work.
+2B is complete; stop before 2C. Approved local database initialization and review setup are complete. Later checkpoints remain proposals, not authorization to begin. Keep production readiness as separately scoped work.

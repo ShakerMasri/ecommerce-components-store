@@ -18,10 +18,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-zinc-50 font-sans text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-50">
+      <body className="flex min-h-screen flex-col bg-zinc-50 font-sans text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-50">
         <AppPreferencesProvider>
           <Header />
-          <main>{children}</main>
+          <main className="min-w-0 flex-1">{children}</main>
           <Footer />
           <WhatsappSupportShortcut />
         </AppPreferencesProvider>
