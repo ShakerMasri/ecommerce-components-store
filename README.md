@@ -1,5 +1,7 @@
 # Clothing Ecommerce Template
 
+The frontend has been adapted for an independent electronics components store. Existing clothing size/color variants remain temporary; an electronics variant model is not yet implemented.
+
 Clothing Ecommerce Template is a reusable private full-stack e-commerce starter for future clothing-store client storefronts.
 
 This project was forked from an existing hardened ecommerce starter and is now maintained as a separate clothing-store template. It is being prepared as a real client-ready application, not just a demo. The backend, authentication, authorization, environment configuration, deployment flow, and production safety checks should be treated seriously before launch.

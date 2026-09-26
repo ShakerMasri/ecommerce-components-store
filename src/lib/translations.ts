@@ -856,7 +856,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       option: "Option",
       selected: "Selected",
       selectOptionHelp:
-        "Choose an available size and color before adding this piece to your cart.",
+        "Choose an available variant before adding this piece to your cart.",
       selectOptionRequired:
         "Please choose an available size or color option before adding to cart.",
       outOfStock: "Out of stock",
@@ -1636,8 +1636,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       color: "اللون",
       option: "خيار",
       selected: "محدد",
-      selectOptionHelp:
-        "اختار المقاس واللون المتوفرين قبل ما تضيف القطعة للسلة.",
+      selectOptionHelp: "اختار نوع قبل ما تضيف القطعة للسلة.",
       selectOptionRequired: "اختار مقاس أو لون متوفر قبل ما تضيف القطعة للسلة.",
       outOfStock: "غير متوفر",
       descriptionTitle: "الوصف",
