@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ComponentsIllustration } from "~/components/products/ComponentsIllustration";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
 
 export default function HomePage() {
@@ -14,9 +15,9 @@ export default function HomePage() {
             {t.home.badge}
           </p>
 
-          <h1 className="mt-6 text-5xl leading-[0.94] font-bold tracking-[-0.055em] text-[var(--ink)] sm:text-6xl lg:text-7xl">
+          <h1 className="mt-6 text-4xl leading-tight font-bold tracking-[-0.055em] text-[var(--ink)] sm:text-6xl lg:text-7xl">
             {t.home.titleStart} <br />
-            <span className="font-editorial text-[var(--accent-strong)] italic">
+            <span className="text-[var(--accent-strong)]">
               {t.home.titleBrand}
             </span>
           </h1>
@@ -44,6 +45,7 @@ export default function HomePage() {
 
         <div className="premium-shell overflow-hidden rounded-[2rem] p-4 sm:p-5">
           <div className="grid gap-4">
+            <ComponentsIllustration />
             <div className="flex flex-col justify-between gap-6 rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-elevated)] p-5">
               <div>
                 <p className="text-xs font-semibold tracking-[0.24em] text-[var(--accent)] uppercase">
@@ -83,9 +85,9 @@ export default function HomePage() {
               key={item.title}
               className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-card)] p-5 shadow-sm sm:p-6"
             >
-              <p className="text-base font-semibold text-[var(--ink)]">
+              <h2 className="text-base font-semibold text-[var(--ink)]">
                 {item.title}
-              </p>
+              </h2>
               <p className="mt-3 text-sm leading-7 text-[var(--ink-muted)]">
                 {item.description}
               </p>

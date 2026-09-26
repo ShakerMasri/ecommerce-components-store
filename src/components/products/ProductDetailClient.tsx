@@ -226,7 +226,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
 
       <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-start">
         <div className="space-y-4">
-          <div className="relative aspect-square overflow-hidden rounded-[2rem] border border-[var(--line-soft)] bg-gradient-to-br from-[var(--surface-elevated)] via-[var(--accent-soft)] to-[var(--accent)] shadow-sm">
+          <div className="relative aspect-square overflow-hidden rounded-[2rem] border border-[var(--line-soft)] bg-[var(--surface-muted)] shadow-sm">
             {selectedImage ? (
               <OptimizedImage
                 src={selectedImage}
@@ -234,7 +234,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
                 cloudinaryWidth={1400}
-                className="object-cover"
+                className="h-full w-full object-contain p-4"
               />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-[var(--ink-muted)]">
@@ -271,6 +271,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
                         : "border-[var(--line-soft)] hover:border-[var(--accent)]"
                     }`}
                     aria-label={`${t.products.image} ${index + 1}`}
+                    aria-pressed={isActive}
                   >
                     <OptimizedImage
                       src={image}
@@ -278,7 +279,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
                       sizes="(max-width: 640px) 22vw, 96px"
                       loading={index < 4 ? "eager" : "lazy"}
                       cloudinaryWidth={220}
-                      className="object-cover"
+                      className="h-full w-full object-contain p-4"
                     />
                   </button>
                 );
@@ -301,7 +302,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
                 {product.category.name}
               </p>
 
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--ink)] sm:text-4xl">
+              <h1 className="mt-2 text-3xl font-black tracking-tight break-words text-[var(--ink)] sm:text-4xl">
                 {product.name}
               </h1>
             </div>
@@ -344,7 +345,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
                 {t.products.descriptionTitle}
               </h2>
 
-              <p className="mt-2 text-sm leading-7 text-[var(--ink-muted)]">
+              <p className="mt-2 text-sm leading-7 break-words whitespace-pre-line text-[var(--ink-muted)]">
                 {product.description?.trim()
                   ? product.description
                   : t.products.noDescription}
@@ -379,7 +380,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
                         type="button"
                         onClick={() => setSelectedVariantId(variant.id)}
                         disabled={isVariantOutOfStock}
-                        className={`min-h-12 rounded-2xl border px-3 py-2.5 text-left transition focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none disabled:cursor-not-allowed ${
+                        className={`min-h-12 rounded-2xl border px-3 py-2.5 text-start transition focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none disabled:cursor-not-allowed ${
                           isSelected
                             ? "border-[var(--accent)] bg-[var(--surface-card)] text-[var(--accent-strong)] shadow-sm ring-2 ring-[var(--accent-soft)]"
                             : isVariantOutOfStock

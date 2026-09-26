@@ -58,13 +58,13 @@ export function Footer() {
   ];
 
   return (
-    <footer className="mt-16 border-t border-[var(--footer-line)] bg-[var(--footer-surface)] text-[var(--footer-ink)]">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+    <footer className="mt-12 border-t border-[var(--footer-line)] bg-[var(--footer-surface)] text-[var(--footer-ink)]">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-12">
         <div>
-          <p className="text-lg font-bold tracking-[0.22em] text-[var(--footer-ink)] uppercase">
+          <p className="text-lg font-bold text-[var(--footer-ink)]">
             {t.brand.name}
           </p>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--footer-muted)]">
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[var(--footer-muted)]">
             © {new Date().getFullYear()} {t.footer.rights}{" "}
             {t.footer.description}
           </p>
@@ -72,20 +72,21 @@ export function Footer() {
 
         {contactConfig.footer.showContactSummary ? (
           <div className="lg:text-end">
-            <p className="text-xs font-semibold tracking-[0.24em] text-[var(--footer-accent)] uppercase">
+            <p className="text-sm font-semibold text-[var(--footer-accent)]">
               {t.footer.contactTitle}
             </p>
 
-            <ul className="mt-4 space-y-2 text-sm">
+            <ul className="mt-3 space-y-1 text-sm">
               {contactLinks.map((link) => (
                 <li key={link.href}>
                   <a
                     href={link.href}
                     target={link.external ? "_blank" : undefined}
                     rel={link.external ? "noreferrer" : undefined}
-                    className="text-[var(--footer-muted)] transition hover:text-[var(--footer-ink)]"
+                    className="inline-flex min-h-11 max-w-full flex-wrap items-center gap-x-1 rounded-md py-2 text-[var(--footer-muted)] transition hover:text-[var(--footer-ink)]"
                   >
-                    {link.label}: {link.value}
+                    <span>{link.label}:</span>{" "}
+                    <bdi className="break-all">{link.value}</bdi>
                   </a>
                 </li>
               ))}
@@ -104,7 +105,7 @@ export function Footer() {
                       rel="noreferrer"
                       aria-label={`${t.footer.openSocialLink} ${link.label}`}
                       title={link.label}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--footer-line)] text-[var(--footer-muted)] transition hover:border-[var(--footer-accent)] hover:text-[var(--footer-ink)] focus-visible:text-[var(--footer-ink)]"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--footer-line)] text-[var(--footer-muted)] transition hover:border-[var(--footer-accent)] hover:text-[var(--footer-ink)] focus-visible:text-[var(--footer-ink)]"
                     >
                       <SocialIcon icon={link.icon} />
                     </a>
@@ -151,13 +152,13 @@ export function Footer() {
       <div className="border-t border-[var(--footer-line)]">
         <nav
           aria-label={t.footer.legalLinksLabel}
-          className="mx-auto flex max-w-7xl flex-wrap gap-x-5 gap-y-3 px-4 py-5 text-xs font-semibold tracking-[0.18em] text-[var(--footer-muted)] uppercase sm:px-6 lg:px-8"
+          className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-1 px-4 py-4 text-sm font-medium text-[var(--footer-muted)] sm:flex sm:flex-wrap sm:gap-x-6 sm:px-6 lg:px-8"
         >
           {legalLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="transition hover:text-[var(--footer-ink)]"
+              className="inline-flex min-h-11 items-center rounded-md py-2 transition hover:text-[var(--footer-ink)]"
             >
               {link.label}
             </Link>

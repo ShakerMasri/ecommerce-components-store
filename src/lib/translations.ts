@@ -758,7 +758,8 @@ export const translations: Record<Language, TranslationDictionary> = {
     },
     footer: {
       rights: "All rights reserved.",
-      description: "Everyday clothing, easy ordering, and cash on delivery.",
+      description:
+        "Electronic components for circuits, prototypes and university projects.",
       contactTitle: "Contact us",
       whatsapp: "WhatsApp",
       phone: "Phone",
@@ -781,20 +782,22 @@ export const translations: Record<Language, TranslationDictionary> = {
       defaultMessage: `Hi, I need help with a product or order from ${englishStoreName}.`,
     },
     home: {
-      badge: "New arrivals",
-      titleStart: "Everyday pieces",
-      titleBrand: "styled simply",
+      badge: "Electronics components",
+      titleStart: "Build your next",
+      titleBrand: "project",
       description:
-        "Browse the collection, choose the size and color that work for you, and order easily with cash on delivery.",
-      flowTitle: "How to order",
+        "Explore components for circuits, prototypes and university projects. Browse the catalog for current products, prices and availability.",
+      flowTitle: "From idea to circuit",
       highlights: [
         {
-          title: "Browse the collection",
-          description: "See available pieces, prices, photos, and options.",
+          title: "Start with your circuit",
+          description:
+            "List the parts your design needs, then browse by name or category.",
         },
         {
-          title: "Choose your options",
-          description: "Pick the available size and color that suit you.",
+          title: "Check the exact part",
+          description:
+            "Review product details and manufacturer documentation for your chosen model.",
         },
         {
           title: "Review and order",
@@ -804,26 +807,28 @@ export const translations: Record<Language, TranslationDictionary> = {
       ],
       stats: [
         {
-          title: "Something for every day",
-          description: "Find pieces for work, outings, and special occasions.",
-        },
-        {
-          title: "Cash on delivery",
-          description: "Order online and pay when your order arrives.",
-        },
-        {
-          title: "Need help?",
+          title: "Boards & prototyping",
           description:
-            "Message us on WhatsApp if you need help choosing or ordering.",
+            "Solderless breadboards let you assemble temporary circuits. Check the exact ESP32 board model for its interfaces and wireless features.",
+        },
+        {
+          title: "Motors, ICs & sensors",
+          description:
+            "Match motors to a suitable driver. Check the pinout and electrical ratings of ICs and sensors against your design.",
+        },
+        {
+          title: "University projects & kits",
+          description:
+            "Use your project brief to build a parts list. Check each kit’s listed contents before choosing additional components.",
         },
       ],
     },
     products: {
-      badge: "Our collection",
-      title: "Find the piece that suits you",
+      badge: "Component catalog",
+      title: "Find parts for your project",
       description:
-        "Search by name or category, then open a product to see available sizes and colors.",
-      searchLabel: "Search the collection",
+        "Search by product name or category. Open a product to review its details, images and available options.",
+      searchLabel: "Search components",
       searchPlaceholder: "Search by name or category...",
       searchButton: "Search",
       loadMore: "Show more",
@@ -838,7 +843,7 @@ export const translations: Record<Language, TranslationDictionary> = {
         "Try another category or search with a different word.",
       failedToLoad: "Failed to load products.",
       failedToConnect: "Failed to connect to the server.",
-      noImage: "Image coming soon",
+      noImage: "No product image",
       featured: "Featured",
       soldOut: "Sold out",
       out: "Out",
@@ -851,7 +856,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       option: "Option",
       selected: "Selected",
       selectOptionHelp:
-        "Choose an available size and color before adding this piece to your cart.",
+        "Choose an available variant before adding this piece to your cart.",
       selectOptionRequired:
         "Please choose an available size or color option before adding to cart.",
       outOfStock: "Out of stock",
@@ -1536,7 +1541,8 @@ export const translations: Record<Language, TranslationDictionary> = {
     },
     footer: {
       rights: "جميع الحقوق محفوظة.",
-      description: "ملابس لكل يوم، طلب سهل، ودفع عند الاستلام.",
+      description:
+        "مكوّنات إلكترونية للدوائر والنماذج الأولية والمشاريع الجامعية.",
       contactTitle: "تواصل معنا",
       whatsapp: "واتساب",
       phone: "الهاتف",
@@ -1559,20 +1565,22 @@ export const translations: Record<Language, TranslationDictionary> = {
       defaultMessage: `مرحبا، بدي مساعدة بخصوص قطعة أو طلب من ${arabicStoreName}.`,
     },
     home: {
-      badge: "وصل حديثاً",
-      titleStart: "إطلالات يومية",
-      titleBrand: "مختارة بعناية",
+      badge: "مكوّنات إلكترونية",
+      titleStart: "ابدأ بناء",
+      titleBrand: "مشروعك القادم",
       description:
-        "تصفّح التشكيلة، اختار المقاس واللون المناسبين إلك، واطلب بسهولة مع الدفع عند الاستلام.",
-      flowTitle: "كيف تطلب",
+        "استكشف مكوّنات للدوائر والنماذج الأولية والمشاريع الجامعية. تصفّح الكتالوج للاطلاع على المنتجات والأسعار والتوفر الحالي.",
+      flowTitle: "من الفكرة إلى الدائرة",
       highlights: [
         {
-          title: "شوف التشكيلة",
-          description: "تصفّح القطع، الأسعار، الصور والخيارات المتوفرة.",
+          title: "ابدأ بدائرتك",
+          description:
+            "حدّد القطع التي يحتاجها تصميمك، ثم ابحث بالاسم أو التصنيف.",
         },
         {
-          title: "اختار المقاس واللون",
-          description: "حدّد المقاس واللون اللي بناسبك من الخيارات المتوفرة.",
+          title: "تحقّق من القطعة",
+          description:
+            "راجع تفاصيل المنتج ووثائق الشركة المصنّعة للطراز الذي اخترته.",
         },
         {
           title: "راجع واطلب",
@@ -1581,24 +1589,27 @@ export const translations: Record<Language, TranslationDictionary> = {
       ],
       stats: [
         {
-          title: "خيارات لكل يوم",
-          description: "قطع مناسبة للدوام، الطلعات والمناسبات.",
+          title: "اللوحات وتجربة الدوائر",
+          description:
+            "تتيح لوحات التجارب دون لحام تركيب دوائر مؤقتة. تحقّق من طراز لوحة ESP32 المحدّد لمعرفة واجهاتها وميزاتها اللاسلكية.",
         },
         {
-          title: "الدفع عند الاستلام",
-          description: "اطلب أونلاين وادفع لما تستلم طلبك.",
+          title: "المحرّكات والدوائر المتكاملة والحسّاسات",
+          description:
+            "اختر مشغّلاً مناسباً للمحرّك. راجع توزيع الأطراف والقيم الكهربائية للدوائر المتكاملة والحسّاسات وفق تصميمك.",
         },
         {
-          title: "بدك مساعدة؟",
-          description: "احكي معنا على واتساب ومنساعدك بالاختيار أو الطلب.",
+          title: "المشاريع الجامعية والأطقم",
+          description:
+            "استخدم متطلبات مشروعك لإعداد قائمة القطع. راجع محتويات كل طقم قبل اختيار مكوّنات إضافية.",
         },
       ],
     },
     products: {
-      badge: "تشكيلتنا",
-      title: "دور على القطعة اللي بتناسبك",
+      badge: "كتالوج المكوّنات",
+      title: "ابحث عن قطع لمشروعك",
       description:
-        "ابحث بالاسم أو التصنيف، وافتح القطعة عشان تشوف المقاسات والألوان المتوفرة.",
+        "ابحث باسم المنتج أو التصنيف. افتح المنتج لمراجعة تفاصيله وصوره وخياراته المتوفرة.",
       searchLabel: "دور على منتج",
       searchPlaceholder: "اكتب اسم القطعة أو التصنيف...",
       searchButton: "بحث",
@@ -1613,7 +1624,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       noProductsDescription: "جرّب تغيّر التصنيف أو ابحث بكلمة ثانية.",
       failedToLoad: "فشل تحميل المنتجات.",
       failedToConnect: "فشل الاتصال بالخادم.",
-      noImage: "الصورة بتنضاف قريباً",
+      noImage: "لا توجد صورة للمنتج",
       featured: "مميز",
       soldOut: "نفذ المخزون",
       out: "غير متوفر",
@@ -1625,8 +1636,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       color: "اللون",
       option: "خيار",
       selected: "محدد",
-      selectOptionHelp:
-        "اختار المقاس واللون المتوفرين قبل ما تضيف القطعة للسلة.",
+      selectOptionHelp: "اختار نوع قبل ما تضيف القطعة للسلة.",
       selectOptionRequired: "اختار مقاس أو لون متوفر قبل ما تضيف القطعة للسلة.",
       outOfStock: "غير متوفر",
       descriptionTitle: "الوصف",

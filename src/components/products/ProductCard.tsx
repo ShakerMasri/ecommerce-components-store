@@ -55,13 +55,13 @@ export function ProductCard({ product, labels }: ProductCardProps) {
       aria-label={product.name}
     >
       <article className="flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-[var(--line-soft)] bg-[var(--surface-card)] shadow-sm transition duration-300 group-hover:-translate-y-1 group-hover:border-[var(--accent)] group-hover:shadow-xl group-hover:shadow-black/10">
-        <div className="relative aspect-[4/5] overflow-hidden bg-[var(--surface-muted)]">
+        <div className="relative aspect-square overflow-hidden bg-[var(--surface-muted)]">
           {mainImage ? (
             <OptimizedImage
               src={mainImage}
               alt={product.name}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover transition duration-500 group-hover:scale-105"
+              className="h-full w-full object-contain p-4 transition duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-center text-sm font-medium text-[var(--ink-muted)]">
@@ -92,7 +92,7 @@ export function ProductCard({ product, labels }: ProductCardProps) {
               {product.category.name}
             </p>
 
-            <h3 className="line-clamp-2 min-h-10 text-sm leading-5 font-semibold text-[var(--ink)] transition group-hover:text-[var(--accent-strong)] sm:min-h-12 sm:text-base sm:leading-6">
+            <h3 className="min-h-10 text-sm leading-5 font-semibold break-words text-[var(--ink)] transition group-hover:text-[var(--accent-strong)] sm:min-h-12 sm:text-base sm:leading-6">
               {product.name}
             </h3>
           </div>

@@ -194,11 +194,11 @@ export function ProductListingClient() {
       <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-card)] p-4 shadow-sm sm:rounded-[1.75rem] sm:p-5 lg:p-6">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
+            <p className="text-xs font-semibold tracking-[0.22em] text-[var(--accent)] uppercase">
               {t.products.badge}
             </p>
 
-            <h1 className="mt-2 max-w-3xl text-2xl font-bold leading-tight tracking-[-0.035em] text-[var(--ink)] sm:mt-3 sm:text-4xl lg:text-5xl">
+            <h1 className="mt-2 max-w-3xl text-2xl leading-tight font-bold tracking-[-0.035em] text-[var(--ink)] sm:mt-3 sm:text-4xl lg:text-5xl">
               {t.products.title}
             </h1>
 
@@ -210,7 +210,7 @@ export function ProductListingClient() {
           <form onSubmit={handleSearchSubmit}>
             <label
               htmlFor="product-search"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)]"
+              className="text-xs font-semibold tracking-[0.2em] text-[var(--accent)] uppercase"
             >
               {t.products.searchLabel}
             </label>
@@ -222,7 +222,7 @@ export function ProductListingClient() {
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder={t.products.searchPlaceholder}
-                className="min-h-11 w-full rounded-full border border-[var(--line-soft)] bg-[var(--surface-elevated)] px-4 text-sm text-[var(--ink)] outline-none transition placeholder:text-[var(--ink-muted)] focus:border-[var(--accent)] focus:bg-[var(--surface-card)] sm:min-h-12"
+                className="min-h-11 w-full rounded-full border border-[var(--line-soft)] bg-[var(--surface-elevated)] px-4 text-sm text-[var(--ink)] transition outline-none placeholder:text-[var(--ink-muted)] focus:border-[var(--accent)] focus:bg-[var(--surface-card)] sm:min-h-12"
               />
 
               <button
@@ -272,7 +272,7 @@ export function ProductListingClient() {
       ) : null}
 
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
             <ProductCardSkeleton key={index} />
           ))}
@@ -303,7 +303,7 @@ export function ProductListingClient() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((product) => (
               <ProductCard
                 key={product.id}
