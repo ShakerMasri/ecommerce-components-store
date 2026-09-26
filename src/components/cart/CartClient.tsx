@@ -161,6 +161,7 @@ export function CartClient() {
   const [deliveryValidationAttempted, setDeliveryValidationAttempted] =
     useState(false);
   const checkoutKeyRef = useRef<string | null>(null);
+  const confirmationRef = useRef<HTMLDialogElement>(null);
   const [checkoutStatus, setCheckoutStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -427,6 +428,17 @@ export function CartClient() {
     void loadCart();
   }, [loadCart]);
 
+  useEffect(() => {
+    if (!isConfirmingOrder) return;
+    const dialog = confirmationRef.current;
+    const trigger = document.activeElement;
+    dialog?.showModal();
+    return () => {
+      dialog?.close();
+      if (trigger instanceof HTMLElement) trigger.focus();
+    };
+  }, [isConfirmingOrder]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -491,7 +503,7 @@ export function CartClient() {
             <span className="text-[var(--ink-muted)]">
               {t.cart.deliveryArea}
             </span>
-            <span className="text-right font-semibold text-[var(--ink)]">
+            <span className="text-end font-semibold text-[var(--ink)]">
               {placedDeliveryAreaLabel}
             </span>
           </div>
@@ -679,7 +691,7 @@ export function CartClient() {
                         src={image}
                         alt={item.product.name}
                         sizes="(max-width: 640px) 100vw, 112px"
-                        className="object-cover transition hover:scale-105"
+                        className="object-contain p-2"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-xs text-[var(--ink-muted)]">
@@ -697,7 +709,7 @@ export function CartClient() {
 
                         <Link
                           href={`/products/${item.product.slug}`}
-                          className="mt-1 block text-base font-bold text-[var(--ink)] transition hover:text-[var(--accent-strong)]"
+                          className="mt-1 block text-base font-bold break-words text-[var(--ink)] transition hover:text-[var(--accent-strong)]"
                         >
                           {item.product.name}
                         </Link>
@@ -756,7 +768,7 @@ export function CartClient() {
                           onClick={() =>
                             void updateQuantity(item.id, item.quantity - 1)
                           }
-                          className="flex h-10 w-10 items-center justify-center text-lg font-bold text-[var(--ink-muted)] transition hover:bg-[var(--surface-muted)] focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                          className="flex h-11 w-11 items-center justify-center text-lg font-bold text-[var(--ink-muted)] transition hover:bg-[var(--surface-muted)] focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                           aria-label={t.cart.decreaseQuantity}
                         >
                           -
@@ -782,7 +794,7 @@ export function CartClient() {
                           onClick={() =>
                             void updateQuantity(item.id, item.quantity + 1)
                           }
-                          className="flex h-10 w-10 items-center justify-center text-lg font-bold text-[var(--ink-muted)] transition hover:bg-[var(--surface-muted)] focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                          className="flex h-11 w-11 items-center justify-center text-lg font-bold text-[var(--ink-muted)] transition hover:bg-[var(--surface-muted)] focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                           aria-label={t.cart.increaseQuantity}
                         >
                           +
@@ -793,7 +805,7 @@ export function CartClient() {
                         type="button"
                         onClick={() => void removeItem(item.id)}
                         disabled={isRemoving || isUpdating}
-                        className="min-h-10 rounded-full border border-[var(--danger-soft)] bg-[var(--danger-soft)] px-4 py-2 text-left text-sm font-semibold text-[var(--danger-ink)] transition hover:bg-[var(--danger-soft)] focus-visible:ring-4 focus-visible:ring-[var(--danger-soft)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        className="min-h-11 rounded-full border border-[var(--danger-soft)] bg-[var(--danger-soft)] px-4 py-2 text-start text-sm font-semibold text-[var(--danger-ink)] transition hover:bg-[var(--danger-soft)] focus-visible:ring-4 focus-visible:ring-[var(--danger-soft)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isRemoving ? t.cart.removing : t.cart.remove}
                       </button>
@@ -1120,307 +1132,320 @@ export function CartClient() {
       </div>
 
       {isConfirmingOrder ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--ink)_72%,transparent)] p-4">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirm-order-title"
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-[var(--line-soft)] bg-[var(--surface-card)] p-5 shadow-2xl shadow-black/20"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2
-                  id="confirm-order-title"
-                  className="text-2xl font-black text-[var(--ink)]"
-                >
-                  {t.cart.confirmOrderTitle}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">
-                  {t.cart.confirmOrderDescription}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsConfirmingOrder(false)}
-                className="rounded-full border border-[var(--line-soft)] bg-[var(--surface-card)] px-3 py-1.5 text-sm font-semibold text-[var(--accent-strong)] transition hover:bg-[var(--surface-muted)]"
+        <dialog
+          ref={confirmationRef}
+          onCancel={() => setIsConfirmingOrder(false)}
+          onKeyDown={(event) => {
+            if (event.key !== "Tab") return;
+            const controls = event.currentTarget.querySelectorAll<HTMLElement>(
+              "a[href], button:not(:disabled)",
+            );
+            const first = controls.item(0);
+            const last = controls.item(controls.length - 1);
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first?.focus();
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-order-title"
+          className="fixed inset-0 m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-[2rem] border border-[var(--line-soft)] bg-[var(--surface-card)] p-5 text-[var(--ink)] shadow-2xl shadow-black/20 backdrop:bg-[color-mix(in_srgb,var(--ink)_72%,transparent)]"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2
+                id="confirm-order-title"
+                className="text-2xl font-black text-[var(--ink)]"
               >
-                {t.cart.cancel}
-              </button>
+                {t.cart.confirmOrderTitle}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">
+                {t.cart.confirmOrderDescription}
+              </p>
             </div>
 
-            <div
-              className="mt-6 rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4"
-              data-testid="checkout-review-items"
+            <button
+              type="button"
+              onClick={() => setIsConfirmingOrder(false)}
+              className="rounded-full border border-[var(--line-soft)] bg-[var(--surface-card)] px-3 py-1.5 text-sm font-semibold text-[var(--accent-strong)] transition hover:bg-[var(--surface-muted)]"
             >
-              <h3 className="text-sm font-bold text-[var(--ink)]">
-                {t.cart.reviewItemsTitle}
-              </h3>
+              {t.cart.cancel}
+            </button>
+          </div>
 
-              <ul className="mt-3 space-y-3">
-                {cartItems.map((item) => {
-                  const variantLabel = formatVariantLabel(item.productVariant);
-                  const unitPrice = getEffectiveCartPrice(item.product);
-                  const lineTotal = unitPrice * item.quantity;
+          <div
+            className="mt-6 rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4"
+            data-testid="checkout-review-items"
+          >
+            <h3 className="text-sm font-bold text-[var(--ink)]">
+              {t.cart.reviewItemsTitle}
+            </h3>
 
-                  return (
-                    <li
-                      key={item.id}
-                      className="rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-card)] p-3"
-                    >
-                      <p className="font-bold text-[var(--ink)]">
-                        {item.product.name}
-                      </p>
+            <ul className="mt-3 space-y-3">
+              {cartItems.map((item) => {
+                const variantLabel = formatVariantLabel(item.productVariant);
+                const unitPrice = getEffectiveCartPrice(item.product);
+                const lineTotal = unitPrice * item.quantity;
 
-                      <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                        {variantLabel ? (
-                          <div className="flex justify-between gap-3 sm:col-span-2">
-                            <dt className="text-[var(--ink-muted)]">
-                              {t.cart.selectedOption}
-                            </dt>
-                            <dd
-                              className="text-right font-semibold text-[var(--ink)]"
-                              data-testid="checkout-review-variant"
-                            >
-                              {variantLabel}
-                            </dd>
-                          </div>
-                        ) : null}
+                return (
+                  <li
+                    key={item.id}
+                    className="rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-card)] p-3"
+                  >
+                    <p className="font-bold text-[var(--ink)]">
+                      {item.product.name}
+                    </p>
 
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-[var(--ink-muted)]">
-                            {t.cart.quantity}
-                          </dt>
-                          <dd className="font-semibold text-[var(--ink)]">
-                            {item.quantity}
-                          </dd>
-                        </div>
-
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-[var(--ink-muted)]">
-                            {t.cart.unitPrice}
-                          </dt>
-                          <dd className="font-semibold text-[var(--ink)]">
-                            {formatPrice(unitPrice)}
-                          </dd>
-                        </div>
-
+                    <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                      {variantLabel ? (
                         <div className="flex justify-between gap-3 sm:col-span-2">
-                          <dt className="font-semibold text-[var(--ink)]">
-                            {t.cart.lineTotal}
+                          <dt className="text-[var(--ink-muted)]">
+                            {t.cart.selectedOption}
                           </dt>
-                          <dd className="font-bold text-[var(--accent-strong)]">
-                            {formatPrice(lineTotal)}
+                          <dd
+                            className="text-end font-semibold text-[var(--ink)]"
+                            data-testid="checkout-review-variant"
+                          >
+                            {variantLabel}
                           </dd>
                         </div>
-                      </dl>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+                      ) : null}
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4">
-                <h3 className="text-sm font-bold text-[var(--ink)]">
-                  {t.cart.contactInfo}
-                </h3>
-                <dl className="mt-3 space-y-2 text-sm">
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-[var(--ink-muted)]">
-                      {t.cart.customerName}
-                    </dt>
-                    <dd className="text-right font-semibold text-[var(--ink)]">
-                      {customer?.name?.trim() ?? "—"}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-[var(--ink-muted)]">
-                      {t.cart.customerEmail}
-                    </dt>
-                    <dd className="text-right font-semibold text-[var(--ink)]">
-                      {customer?.email?.trim() ?? "—"}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-[var(--ink-muted)]">
-                      {t.cart.customerPhone}
-                    </dt>
-                    <dd className="text-right font-semibold text-[var(--ink)]">
-                      {customer?.phone?.trim() ?? "—"}
-                    </dd>
-                  </div>
-                </dl>
-                <p className="mt-3 text-xs leading-5 text-[var(--ink-muted)]">
-                  {t.cart.savedAccountContact}
-                </p>
-              </div>
+                      <div className="flex justify-between gap-3">
+                        <dt className="text-[var(--ink-muted)]">
+                          {t.cart.quantity}
+                        </dt>
+                        <dd className="font-semibold text-[var(--ink)]">
+                          {item.quantity}
+                        </dd>
+                      </div>
 
-              <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4">
-                <h3 className="text-sm font-bold text-[var(--ink)]">
-                  {t.cart.deliveryDetailsTitle}
-                </h3>
-                <dl className="mt-3 space-y-2 text-sm">
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-[var(--ink-muted)]">
-                      {t.cart.deliveryArea}
-                    </dt>
-                    <dd className="text-right font-semibold text-[var(--ink)]">
-                      {selectedDeliveryTranslation.label}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-[var(--ink-muted)]">
-                      {t.cart.deliveryMethod}
-                    </dt>
-                    <dd className="max-w-[65%] text-right font-semibold text-[var(--ink)]">
-                      {t.delivery.method}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-[var(--ink-muted)]">
-                      {t.cart.estimatedDelivery}
-                    </dt>
-                    <dd className="max-w-[65%] text-right font-semibold text-[var(--ink)]">
-                      {t.delivery.estimatedDuration}
-                    </dd>
-                  </div>
-                  {selectedDeliveryTranslation.note ? (
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-[var(--ink-muted)]">
-                        {t.cart.deliveryConditions}
-                      </dt>
-                      <dd className="max-w-[65%] text-right font-semibold text-[var(--ink)]">
-                        {selectedDeliveryTranslation.note}
-                      </dd>
-                    </div>
-                  ) : null}
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-[var(--ink-muted)]">
-                      {t.cart.deliveryCity}
-                    </dt>
-                    <dd className="text-right font-semibold text-[var(--ink)]">
-                      {deliveryForm.deliveryCity.trim()}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-[var(--ink-muted)]">
-                      {t.cart.deliveryAddress}
-                    </dt>
-                    <dd className="text-right font-semibold text-[var(--ink)]">
-                      {deliveryForm.deliveryAddress.trim() || "—"}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-[var(--ink-muted)]">
-                      {t.cart.deliveryNotes}
-                    </dt>
-                    <dd className="text-right font-semibold text-[var(--ink)]">
-                      {deliveryForm.deliveryNotes.trim() || "—"}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
+                      <div className="flex justify-between gap-3">
+                        <dt className="text-[var(--ink-muted)]">
+                          {t.cart.unitPrice}
+                        </dt>
+                        <dd className="font-semibold text-[var(--ink)]">
+                          {formatPrice(unitPrice)}
+                        </dd>
+                      </div>
 
-            <div className="mt-4 rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4">
+                      <div className="flex justify-between gap-3 sm:col-span-2">
+                        <dt className="font-semibold text-[var(--ink)]">
+                          {t.cart.lineTotal}
+                        </dt>
+                        <dd className="font-bold text-[var(--accent-strong)]">
+                          {formatPrice(lineTotal)}
+                        </dd>
+                      </div>
+                    </dl>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4">
               <h3 className="text-sm font-bold text-[var(--ink)]">
-                {t.cart.orderSummary}
+                {t.cart.contactInfo}
               </h3>
               <dl className="mt-3 space-y-2 text-sm">
-                <div className="flex justify-between gap-4">
+                <div className="flex justify-between gap-3">
                   <dt className="text-[var(--ink-muted)]">
-                    {t.cart.productsTotal}
+                    {t.cart.customerName}
                   </dt>
-                  <dd className="font-semibold text-[var(--ink)]">
-                    {formatPrice(total)}
+                  <dd className="text-end font-semibold text-[var(--ink)]">
+                    {customer?.name?.trim() ?? "—"}
                   </dd>
                 </div>
-                <div className="flex justify-between gap-4">
+                <div className="flex justify-between gap-3">
                   <dt className="text-[var(--ink-muted)]">
-                    {t.cart.deliveryPrice}
+                    {t.cart.customerEmail}
                   </dt>
-                  <dd className="font-semibold text-[var(--ink)]">
-                    {formatDeliveryPriceNis(selectedDeliveryPrice, {
-                      free: t.delivery.free,
-                      currency: t.delivery.currency,
-                    })}
+                  <dd className="text-end font-semibold text-[var(--ink)]">
+                    {customer?.email?.trim() ?? "—"}
                   </dd>
                 </div>
-                <div className="flex justify-between gap-4">
+                <div className="flex justify-between gap-3">
                   <dt className="text-[var(--ink-muted)]">
-                    {t.cart.paymentMethod}
+                    {t.cart.customerPhone}
                   </dt>
-                  <dd className="font-semibold text-[var(--ink)]">
-                    {t.cart.cashOnDelivery}
+                  <dd className="text-end font-semibold text-[var(--ink)]">
+                    {customer?.phone?.trim() ?? "—"}
                   </dd>
                 </div>
-                <div
-                  className="flex justify-between gap-4"
-                  data-testid="checkout-review-currency"
-                >
+              </dl>
+              <p className="mt-3 text-xs leading-5 text-[var(--ink-muted)]">
+                {t.cart.savedAccountContact}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4">
+              <h3 className="text-sm font-bold text-[var(--ink)]">
+                {t.cart.deliveryDetailsTitle}
+              </h3>
+              <dl className="mt-3 space-y-2 text-sm">
+                <div className="flex justify-between gap-3">
                   <dt className="text-[var(--ink-muted)]">
-                    {t.cart.currency}
+                    {t.cart.deliveryArea}
                   </dt>
-                  <dd className="font-semibold text-[var(--ink)]">
-                    {t.delivery.currency}
+                  <dd className="text-end font-semibold text-[var(--ink)]">
+                    {selectedDeliveryTranslation.label}
                   </dd>
                 </div>
-                {taxDisclosure ? (
-                  <div className="flex justify-between gap-4">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--ink-muted)]">
+                    {t.cart.deliveryMethod}
+                  </dt>
+                  <dd className="max-w-[65%] text-end font-semibold text-[var(--ink)]">
+                    {t.delivery.method}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--ink-muted)]">
+                    {t.cart.estimatedDelivery}
+                  </dt>
+                  <dd className="max-w-[65%] text-end font-semibold text-[var(--ink)]">
+                    {t.delivery.estimatedDuration}
+                  </dd>
+                </div>
+                {selectedDeliveryTranslation.note ? (
+                  <div className="flex justify-between gap-3">
                     <dt className="text-[var(--ink-muted)]">
-                      {t.cart.taxInformation}
+                      {t.cart.deliveryConditions}
                     </dt>
-                    <dd className="max-w-[65%] text-right font-semibold text-[var(--ink)]">
-                      {taxDisclosure}
+                    <dd className="max-w-[65%] text-end font-semibold text-[var(--ink)]">
+                      {selectedDeliveryTranslation.note}
                     </dd>
                   </div>
                 ) : null}
-                <div className="flex justify-between gap-4 border-t border-[var(--line-soft)] pt-3">
-                  <dt className="font-bold text-[var(--ink)]">
-                    {t.cart.finalTotal}
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--ink-muted)]">
+                    {t.cart.deliveryCity}
                   </dt>
-                  <dd className="text-lg font-black text-[var(--accent-strong)]">
-                    {formatPrice(finalTotal)}
+                  <dd className="text-end font-semibold text-[var(--ink)]">
+                    {deliveryForm.deliveryCity.trim()}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--ink-muted)]">
+                    {t.cart.deliveryAddress}
+                  </dt>
+                  <dd className="text-end font-semibold text-[var(--ink)]">
+                    {deliveryForm.deliveryAddress.trim() || "—"}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--ink-muted)]">
+                    {t.cart.deliveryNotes}
+                  </dt>
+                  <dd className="text-end font-semibold text-[var(--ink)]">
+                    {deliveryForm.deliveryNotes.trim() || "—"}
                   </dd>
                 </div>
               </dl>
             </div>
-
-            <div className="mt-4 rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4 text-sm">
-              <span className="text-[var(--ink-muted)]">
-                {t.cart.complaintsHelp}{" "}
-              </span>
-              <Link
-                href="/contact"
-                className="font-bold text-[var(--accent)] hover:text-[var(--accent-strong)]"
-              >
-                {t.cart.contactStore}
-              </Link>
-            </div>
-
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setIsConfirmingOrder(false)}
-                className="rounded-full border border-[var(--line-soft)] bg-[var(--surface-card)] px-5 py-3 text-sm font-semibold text-[var(--accent-strong)] transition hover:bg-[var(--surface-muted)] focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none"
-              >
-                {t.cart.cancel}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => void placeOrder()}
-                disabled={checkoutStatus === "loading"}
-                className="rounded-full bg-[var(--ink)] px-5 py-3 text-sm font-bold text-[var(--surface-page)] transition hover:bg-[var(--accent-strong)] focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-[var(--surface-muted)] disabled:text-[var(--ink-muted)]"
-              >
-                {checkoutStatus === "loading"
-                  ? t.cart.placingOrder
-                  : t.cart.confirmPlaceOrder}
-              </button>
-            </div>
           </div>
-        </div>
+
+          <div className="mt-4 rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4">
+            <h3 className="text-sm font-bold text-[var(--ink)]">
+              {t.cart.orderSummary}
+            </h3>
+            <dl className="mt-3 space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--ink-muted)]">
+                  {t.cart.productsTotal}
+                </dt>
+                <dd className="font-semibold text-[var(--ink)]">
+                  {formatPrice(total)}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--ink-muted)]">
+                  {t.cart.deliveryPrice}
+                </dt>
+                <dd className="font-semibold text-[var(--ink)]">
+                  {formatDeliveryPriceNis(selectedDeliveryPrice, {
+                    free: t.delivery.free,
+                    currency: t.delivery.currency,
+                  })}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--ink-muted)]">
+                  {t.cart.paymentMethod}
+                </dt>
+                <dd className="font-semibold text-[var(--ink)]">
+                  {t.cart.cashOnDelivery}
+                </dd>
+              </div>
+              <div
+                className="flex justify-between gap-4"
+                data-testid="checkout-review-currency"
+              >
+                <dt className="text-[var(--ink-muted)]">{t.cart.currency}</dt>
+                <dd className="font-semibold text-[var(--ink)]">
+                  {t.delivery.currency}
+                </dd>
+              </div>
+              {taxDisclosure ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-[var(--ink-muted)]">
+                    {t.cart.taxInformation}
+                  </dt>
+                  <dd className="max-w-[65%] text-end font-semibold text-[var(--ink)]">
+                    {taxDisclosure}
+                  </dd>
+                </div>
+              ) : null}
+              <div className="flex justify-between gap-4 border-t border-[var(--line-soft)] pt-3">
+                <dt className="font-bold text-[var(--ink)]">
+                  {t.cart.finalTotal}
+                </dt>
+                <dd className="text-lg font-black text-[var(--accent-strong)]">
+                  {formatPrice(finalTotal)}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4 text-sm">
+            <span className="text-[var(--ink-muted)]">
+              {t.cart.complaintsHelp}{" "}
+            </span>
+            <Link
+              href="/contact"
+              className="font-bold text-[var(--accent)] hover:text-[var(--accent-strong)]"
+            >
+              {t.cart.contactStore}
+            </Link>
+          </div>
+
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setIsConfirmingOrder(false)}
+              className="rounded-full border border-[var(--line-soft)] bg-[var(--surface-card)] px-5 py-3 text-sm font-semibold text-[var(--accent-strong)] transition hover:bg-[var(--surface-muted)] focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none"
+            >
+              {t.cart.cancel}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void placeOrder()}
+              disabled={checkoutStatus === "loading"}
+              className="rounded-full bg-[var(--ink)] px-5 py-3 text-sm font-bold text-[var(--surface-page)] transition hover:bg-[var(--accent-strong)] focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-[var(--surface-muted)] disabled:text-[var(--ink-muted)]"
+            >
+              {checkoutStatus === "loading"
+                ? t.cart.placingOrder
+                : t.cart.confirmPlaceOrder}
+            </button>
+          </div>
+        </dialog>
       ) : null}
     </section>
   );

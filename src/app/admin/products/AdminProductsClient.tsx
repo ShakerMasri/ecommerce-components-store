@@ -709,7 +709,7 @@ function ProductFormFields({
                     src={image}
                     alt={labels.productPreview}
                     sizes="160px"
-                    className="object-cover"
+                    className="object-contain p-1"
                   />
                 </div>
 
@@ -2147,7 +2147,7 @@ export function AdminProductsClient() {
                           src={image}
                           alt={product.name}
                           sizes="144px"
-                          className="object-cover"
+                          className="object-contain p-1"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">

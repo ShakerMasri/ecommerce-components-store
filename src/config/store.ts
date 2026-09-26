@@ -8,26 +8,26 @@ import { contactConfig } from "~/config/contact";
  * Sensitive deployment settings must stay in environment variables validated by src/env.js.
  */
 export const storeConfig = {
-  name: "Clothing Store Template",
-  shortName: "Clothing Store",
+  name: "Components Store",
+  shortName: "Components Store",
   description:
-    "A clothing storefront for browsing everyday pieces, choosing size and color, and ordering with cash on delivery.",
+    "Electronic components for circuits, prototypes and university projects.",
   metadata: {
-    title: "Clothing Store Template",
+    title: "Components Store",
     description:
-      "Browse clothing, choose available size and color options, and order with cash on delivery.",
+      "Browse electronic components, review product details and check available options.",
   },
   contact: contactConfig,
   locales: {
     en: {
-      name: "Clothing Store",
-      logoStart: "Clothing",
+      name: "Components Store",
+      logoStart: "Components",
       logoAccent: "Store",
     },
     ar: {
-      name: "متجر ملابس",
+      name: "متجر المكوّنات",
       logoStart: "متجر",
-      logoAccent: "ملابس",
+      logoAccent: "المكوّنات",
     },
   },
 } as const;

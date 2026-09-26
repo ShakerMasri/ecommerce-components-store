@@ -541,7 +541,7 @@ export function OrdersClient() {
                             src={image}
                             alt={item.productNameAtPurchase}
                             sizes="96px"
-                            className="object-cover transition hover:scale-105"
+                            className="object-contain p-2"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center text-xs text-[var(--ink-muted)]">
@@ -553,7 +553,7 @@ export function OrdersClient() {
                       <div className="min-w-0 flex-1">
                         <Link
                           href={`/products/${item.productSlugAtPurchase}`}
-                          className="font-bold text-[var(--ink)] transition hover:text-[var(--accent-strong)]"
+                          className="font-bold break-words text-[var(--ink)] transition hover:text-[var(--accent-strong)]"
                         >
                           {item.productNameAtPurchase}
                         </Link>
@@ -573,7 +573,7 @@ export function OrdersClient() {
                         </p>
                       </div>
 
-                      <div className="text-left sm:text-right">
+                      <div className="text-start sm:text-end">
                         <p className="text-sm text-[var(--ink-muted)]">
                           {t.orders.subtotal}
                         </p>
