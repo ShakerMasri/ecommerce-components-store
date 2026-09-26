@@ -6,6 +6,8 @@ Adapt the independent copy of [ecommerce-template-clothing](https://github.com/S
 
 Current scope: colors, fonts, layout, copy and imagery. New commerce features, variant redesign, SaaS and production release work are outside this frontend plan. Follow `AGENTS.md` for durable boundaries; see `agent-handoff.md` for current evidence and blockers.
 
+**Status: current frontend visual scope complete and committed, verified 2026-09-26.** On `electronics/setup`, 2A is committed as `8dbb31e`, 2B as `3b867ce`, and 2C/2D together as `6ef023c`. The working tree was clean before this documentation closeout. No remaining blocker prevents closing 2A–2D; this does not establish production readiness.
+
 ## Checkpoints
 
 1. **Initial read-only assessment — completed.** Use its existing findings; do not restart it.
@@ -20,4 +22,12 @@ Current scope: colors, fonts, layout, copy and imagery. New commerce features, v
 
 ## Sequence
 
-2A–2D are complete; stop here. Review/commit the 2C and 2D changes when desired. Approved local database initialization and review setup remain unchanged. Real catalog population, functional variant redesign and production readiness remain separately scoped work requiring authorization.
+2A–2D are complete and committed; stop at this boundary. Approved local database initialization and review setup remain unchanged. The priorities below are recommendations for separately authorized work, not an extension of the completed visual scope.
+
+## Remaining work outside the completed scope
+
+1. **Decide the electronics variant model.** Existing size/color schema, admin examples, validation and selection remain functional clothing assumptions. Prepare a separate option-model proposal before any schema or business-logic changes; preserve server-controlled prices/stock, cart identity and historical order snapshots. Structured electrical specifications, datasheets, compatibility filters and kit/bundle inventory are not implemented or promised.
+2. **Obtain and populate verified real catalog content.** Owner input is needed for exact SKU/model specifications, kit contents, categories, prices/stock and commercially usable photos with provenance. Review fixtures are not real inventory. Coordinate catalog population with the variant decision; see `electronics-content-sources.md`.
+3. **Complete business and production configuration.** Verify public contacts, business identity, legal/policy and delivery information. The last normal build was blocked by missing `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`; compile-only success with process-local `SKIP_ENV_VALIDATION=1` does not close that blocker. Configure and validate required deployment/integration settings separately, keeping production secrets/data outside the agent-accessible development environment.
+4. **Run separately scoped release validation.** Full packaged E2E, actual order submission/idempotency/inventory effects, admin saves/uploads, registration/reset email delivery and SMTP/Redis/Cloudinary/Google integrations remain unverified. Use suitable verified nonproduction accounts and explicitly scoped writes. The completed keyboard/mobile review is not a full assistive-technology audit; production access and deployment remain separately authorized.
+5. **Optional follow-up copy/RTL polish.** Registration help still mentions server hashing; checkout phone punctuation needs LTR isolation review. These recorded nonblocking issues do not reopen the accepted visual scope.

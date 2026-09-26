@@ -1,11 +1,18 @@
 # Agent handoff
 
-Updated: 2026-09-26. **2D complete**; stopped at the checkpoint boundary. Scoped visual review is complete; release readiness remains open.
+Updated: 2026-09-26. **2A–2D complete and committed; current frontend visual scope closed.** Stopped at the checkpoint boundary; release readiness remains open.
 
 ## Environment
 
 - Local folder: `D:\ecommerce-components-store`.
 - Windows/PowerShell; verified branch: `electronics/setup`.
+
+## Frontend scope closeout
+
+- Verified local commit history and file summaries: 2A `8dbb31e` (2026-09-24), 2B `3b867ce` (2026-09-25), and combined 2C/2D `6ef023c` (2026-09-26). All are on the current branch; working tree was clean before this documentation update. Remote/push status was not assessed.
+- Current visual scope (palette, typography, shared layout/navigation, homepage/catalog presentation and scoped consistency/regression review) is complete. No application changes are part of this closeout.
+- Earlier checkpoint statements about no commit, uncommitted 2C files or 2D not yet started describe those sessions only; the verified status above supersedes them.
+- Closeout verification: reviewed `AGENTS.md`, plan, handoff, content/variant boundaries and commit history. Application checks below are retained checkpoint evidence, not rerun results from this documentation-only session.
 
 ## Checkpoint 2D
 
@@ -19,6 +26,10 @@ Updated: 2026-09-26. **2D complete**; stopped at the checkpoint boundary. Scoped
 - Evidence: ignored `test-results/2d-review/` scripts, result JSONs and PNGs; earlier 2A–2C evidence retained. Private fixture manifest and E2E auth state remain local; do not publish them.
 
 ### Outstanding issues and release boundary
+
+These are outside the accepted frontend visual scope. The build/configuration, owner-content and release-validation gaps remain open; minor copy/RTL issues are nonblocking follow-ups.
+
+- **Variants and unsupported catalog features:** existing `sizeLabel` / `colorLabel` schema, admin validation/examples and product selection remain unchanged. An electronics option model requires a separate approved schema/business-logic proposal preserving pricing/stock enforcement, cart identity and historical order snapshots. Structured specifications, datasheet attachments, compatibility filters and kit/bundle inventory are not implemented or promised.
 
 - Normal `npm.cmd run build` is blocked by absent production-required `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`. Final compile-only build using the repository's existing process-local `SKIP_ENV_VALIDATION=1` **passed after all application edits**, including lint/type validation and 32 generated pages. No application validation or rate-limiting safeguard was relaxed. Compile-only success is not production configuration/runtime acceptance. Final `git diff --check` passed.
 - Real SKU specifications, kit contents, licensed photos, verified contacts/business details and legal/public configuration still need owner input and separate release validation. Existing size/color variants and clothing-specific admin examples remain documented in `electronics-content-sources.md`; they were not disguised as electrical specifications.
@@ -59,4 +70,4 @@ Updated: 2026-09-26. **2D complete**; stopped at the checkpoint boundary. Scoped
 
 ## Next action
 
-2D is complete; stop here. Retain fixtures and review evidence. Review/commit 2C and 2D changes when desired; release work and functional option/schema changes require separate authorization. No deployment or production-readiness claim is implied by visual acceptance.
+Stop here: 2A–2D are complete and committed. Retain fixtures and private review evidence. Recommended separately authorized priorities: (1) agree the electronics variant model while collecting verified SKU/kit data and licensed photos; (2) populate the real catalog and verify business/contact/legal/delivery configuration; (3) resolve production configuration requirements and validate integrations plus full commerce flows in a suitable nonproduction environment before release. Optional copy/RTL follow-ups and broader accessibility review remain separate. See the plan's remaining-work list for scope and blockers. No deployment or production-readiness claim is implied by visual acceptance.
