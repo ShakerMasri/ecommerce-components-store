@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => {
   const tx = {
     user: {
       findUnique: vi.fn(),
+      update: vi.fn(),
     },
     order: {
       findUnique: vi.fn(),
@@ -93,6 +94,7 @@ function createRequest(body: unknown) {
 
 function createOrderInput() {
   return {
+    phone: "+970599000000",
     idempotencyKey: "550e8400-e29b-41d4-a716-446655440000",
     deliveryAreaKey: "west_bank_cities",
     deliveryCity: "Ramallah",
@@ -343,6 +345,68 @@ describe("customer order route", () => {
     expect(mocks.prisma.order.findMany).not.toHaveBeenCalled();
   });
 
+  it.each([undefined, "", "   ", "invalid"])(
+    "rejects invalid phone %s with a field error",
+    async (phone) => {
+      const response = await POST(
+        createRequest({ ...createOrderInput(), phone }),
+      );
+      const body = (await response.json()) as { errors: { phone: string[] } };
+
+      expect(response.status).toBe(400);
+      expect(body.errors.phone.length).toBeGreaterThan(0);
+      expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([null, "+970599111111"])(
+    "saves the submitted phone after creating an order when the saved phone is %s",
+    async (phone) => {
+      mocks.tx.user.findUnique.mockResolvedValueOnce({
+        name: "Test Customer",
+        email: "customer@example.com",
+        emailVerified: true,
+        phone,
+      });
+      const response = await POST(
+        createRequest({ ...createOrderInput(), phone: "+970 599-000000" }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(mocks.tx.user.update).toHaveBeenCalledWith({
+        where: { id: "user-1" },
+        data: { phone: "+970599000000" },
+      });
+      expect(mocks.tx.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            customerPhoneAtPurchase: "+970599000000",
+          }),
+        }),
+      );
+      expect(mocks.sendOrderNotificationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customerPhone: "+970599000000",
+        }),
+      );
+      expect(mocks.tx.order.create.mock.invocationCallOrder[0]).toBeLessThan(
+        mocks.tx.user.update.mock.invocationCallOrder[0]!,
+      );
+    },
+  );
+
+  it("does not save a changed phone when order creation fails", async () => {
+    mocks.tx.order.create.mockRejectedValueOnce(
+      new Error("INSUFFICIENT_STOCK"),
+    );
+    const response = await POST(
+      createRequest({ ...createOrderInput(), phone: "+970599222222" }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.tx.user.update).not.toHaveBeenCalled();
+  });
+
   it("creates a pending order and reserves selected option stock", async () => {
     const response = await POST(createRequest(createOrderInput()));
     const body = (await response.json()) as {
@@ -355,6 +419,7 @@ describe("customer order route", () => {
     expect(response.status).toBe(200);
     expect(body.order.status).toBe("PENDING");
     expect(body.message).toContain("confirm it by WhatsApp or phone");
+    expect(mocks.tx.user.update).not.toHaveBeenCalled();
     expect(mocks.tx.product.updateMany).not.toHaveBeenCalled();
     expect(mocks.tx.productVariant.updateMany).toHaveBeenCalledWith({
       where: {
@@ -587,6 +652,7 @@ describe("customer order route", () => {
     expect(response.status).toBe(200);
     expect(mocks.tx.cartItem.findMany).not.toHaveBeenCalled();
     expect(mocks.tx.order.create).not.toHaveBeenCalled();
+    expect(mocks.tx.user.update).not.toHaveBeenCalled();
     expect(mocks.sendOrderNotificationEmail).not.toHaveBeenCalled();
   });
 
