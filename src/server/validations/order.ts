@@ -1,8 +1,11 @@
 import { z } from "zod";
+import { updateProfileSchema } from "~/lib/validations";
 import { getDeliveryAreaByKey, isDeliveryAreaKey } from "~/lib/delivery";
 
 export const createOrderSchema = z
   .object({
+    phone: updateProfileSchema.shape.phone,
+
     idempotencyKey: z.string().uuid("Invalid idempotency key."),
 
     deliveryAreaKey: z

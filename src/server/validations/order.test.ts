@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createOrderSchema, customerOrdersQuerySchema } from "./order";
 
 const baseOrderInput = {
+  phone: "+970599000000",
   idempotencyKey: "550e8400-e29b-41d4-a716-446655440000",
   deliveryAreaKey: "west_bank_cities",
   deliveryCity: "Ramallah",
@@ -56,6 +57,7 @@ describe("order validations", () => {
       idempotencyKey: "550e8400-e29b-41d4-a716-446655440000",
       deliveryAreaKey: "nablus_receive_point",
       deliveryCity: "Nablus",
+      phone: "+970599000000",
       deliveryAddress: "",
       pickupAgreementAccepted: true,
     });
@@ -68,6 +70,7 @@ describe("order validations", () => {
       idempotencyKey: "550e8400-e29b-41d4-a716-446655440000",
       deliveryAreaKey: "nablus_receive_point",
       deliveryCity: "Nablus",
+      phone: "+970599000000",
       deliveryAddress: "",
       pickupAgreementAccepted: false,
     });
@@ -75,7 +78,6 @@ describe("order validations", () => {
     expect(result.success).toBe(false);
   });
 });
-
 
 describe("customer order query validations", () => {
   it("defaults to the first page with a safe page size", () => {

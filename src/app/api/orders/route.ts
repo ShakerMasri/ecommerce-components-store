@@ -195,13 +195,17 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { message: "Invalid order request." },
+      {
+        message: "Invalid order request.",
+        errors: parsed.error.flatten().fieldErrors,
+      },
       { status: 400 },
     );
   }
 
   const {
     idempotencyKey,
+    phone,
     deliveryAreaKey,
     deliveryCity,
     deliveryAddress,
@@ -238,10 +242,6 @@ export async function POST(request: Request) {
 
       if (!customer.emailVerified) {
         throw new Error("EMAIL_NOT_VERIFIED");
-      }
-
-      if (!customer.phone?.trim()) {
-        throw new Error("PHONE_REQUIRED");
       }
 
       const existingOrder = await tx.order.findUnique({
@@ -370,7 +370,7 @@ export async function POST(request: Request) {
           paymentStatus: "UNPAID",
           customerNameAtPurchase: customer.name,
           customerEmailAtPurchase: customer.email,
-          customerPhoneAtPurchase: customer.phone,
+          customerPhoneAtPurchase: phone,
           items: {
             create: cartItems.map((item) => {
               const effectivePrice = getEffectiveProductPrice(item.product);
@@ -393,6 +393,13 @@ export async function POST(request: Request) {
         select: orderSelect,
       });
 
+      if (customer.phone !== phone) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { phone },
+        });
+      }
+
       await tx.cartItem.deleteMany({
         where: {
           userId,
@@ -409,7 +416,7 @@ export async function POST(request: Request) {
           deliveryAreaKey: createdOrder.deliveryAreaKey ?? deliveryArea.key,
           deliveryCity: createdOrder.deliveryCity ?? deliveryCity,
           customerName: customer.name,
-          customerPhone: customer.phone,
+          customerPhone: phone,
           itemCount,
           createdAt: createdOrder.createdAt,
         } satisfies CreatedOrderNotification,
@@ -446,13 +453,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { message: "Please verify your email before placing an order." },
         { status: 403 },
-      );
-    }
-
-    if (error instanceof Error && error.message === "PHONE_REQUIRED") {
-      return NextResponse.json(
-        { message: "Please add a phone number before placing an order." },
-        { status: 400 },
       );
     }
 

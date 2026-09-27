@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { updateProfileSchema } from "~/lib/validations";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OptimizedImage } from "~/components/ui/OptimizedImage";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
@@ -95,6 +96,7 @@ type Order = {
 };
 
 type CheckoutResponse = {
+  errors?: { phone?: string[] };
   message?: string;
   order?: Order;
 };
@@ -108,6 +110,7 @@ type DeliveryFormState = {
 };
 
 type DeliveryValidationErrors = {
+  phone: string | null;
   city: string | null;
   address: string | null;
   pickupAgreement: string | null;
@@ -150,6 +153,8 @@ export function CartClient() {
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState<CartCustomer | null>(null);
+  const [phoneInput, setPhoneInput] = useState<string | null>(null);
+  const [phoneServerError, setPhoneServerError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [isAuthRequired, setIsAuthRequired] = useState(false);
@@ -166,6 +171,8 @@ export function CartClient() {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+
+  const phone = phoneInput ?? customer?.phone ?? "";
 
   const selectedDeliveryArea =
     getDeliveryAreaByKey(deliveryForm.deliveryAreaKey) ?? DELIVERY_AREAS[0]!;
@@ -325,11 +332,19 @@ export function CartClient() {
         ? t.cart.deliveryAddressRequired
         : null;
 
-    return { city, address, pickupAgreement };
+    const phoneError =
+      phoneServerError ||
+      !updateProfileSchema.shape.phone.safeParse(phone).success
+        ? t.auth.phoneInvalid
+        : null;
+
+    return { city, address, pickupAgreement, phone: phoneError };
   }
 
   function getFirstDeliveryValidationError(errors: DeliveryValidationErrors) {
-    return errors.city ?? errors.pickupAgreement ?? errors.address;
+    return (
+      errors.phone ?? errors.city ?? errors.pickupAgreement ?? errors.address
+    );
   }
 
   function reviewOrder() {
@@ -392,6 +407,7 @@ export function CartClient() {
         },
         body: JSON.stringify({
           idempotencyKey: checkoutKeyRef.current,
+          phone,
           deliveryAreaKey: deliveryForm.deliveryAreaKey,
           deliveryCity: deliveryForm.deliveryCity.trim(),
           deliveryAddress: deliveryForm.deliveryAddress.trim(),
@@ -409,7 +425,8 @@ export function CartClient() {
 
         setCheckoutStatus("error");
         setIsConfirmingOrder(false);
-        setMessage(t.cart.failedToPlaceOrder);
+        setPhoneServerError(Boolean(data.errors?.phone?.length));
+        setMessage(data.errors?.phone?.length ? "" : t.cart.failedToPlaceOrder);
         return;
       }
 
@@ -926,6 +943,44 @@ export function CartClient() {
             ) : null}
 
             <label className="block text-sm font-semibold text-[var(--ink)]">
+              {t.auth.phone}
+              <input
+                type="tel"
+                autoComplete="tel"
+                dir="ltr"
+                value={phone}
+                onChange={(event) => {
+                  setPhoneInput(event.target.value);
+                  setPhoneServerError(false);
+                  setMessage("");
+                }}
+                aria-required="true"
+                aria-invalid={
+                  deliveryValidationAttempted &&
+                  Boolean(deliveryValidationErrors.phone)
+                }
+                aria-describedby={
+                  deliveryValidationAttempted && deliveryValidationErrors.phone
+                    ? "checkout-phone-error"
+                    : undefined
+                }
+                className={`mt-2 w-full rounded-2xl border bg-[var(--surface-card)] px-4 py-3 text-sm text-[var(--ink)] transition outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] ${
+                  deliveryValidationAttempted && deliveryValidationErrors.phone
+                    ? "border-[var(--danger-ink)]"
+                    : "border-[var(--line-soft)]"
+                }`}
+              />
+              {deliveryValidationAttempted && deliveryValidationErrors.phone ? (
+                <span
+                  id="checkout-phone-error"
+                  className="mt-2 block text-xs font-semibold text-[var(--danger-ink)]"
+                >
+                  {deliveryValidationErrors.phone}
+                </span>
+              ) : null}
+            </label>
+
+            <label className="block text-sm font-semibold text-[var(--ink)]">
               {t.cart.deliveryCity}
               <input
                 type="text"
@@ -1275,7 +1330,7 @@ export function CartClient() {
                     {t.cart.customerPhone}
                   </dt>
                   <dd className="text-end font-semibold text-[var(--ink)]">
-                    {customer?.phone?.trim() ?? "—"}
+                    {phone.trim() || "—"}
                   </dd>
                 </div>
               </dl>
