@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { LegalBusinessDetails } from "~/components/legal/LegalBusinessDetails";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
 import { contactConfig, type ContactSocialIconName } from "~/config/contact";
@@ -62,7 +63,15 @@ export function Footer() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-12">
         <div>
           <p className="text-lg font-bold text-[var(--footer-ink)]">
-            {t.brand.name}
+            <Link href="/" aria-label="Darakit home" className="block w-fit">
+              <Image
+                src="/darakit-logo.svg"
+                alt="Darakit home"
+                width={1536}
+                height={269}
+                className="h-7 w-[4.5rem] object-contain"
+              />
+            </Link>
           </p>
           <p className="mt-3 max-w-xl text-sm leading-7 text-[var(--footer-muted)]">
             © {new Date().getFullYear()} {t.footer.rights}{" "}

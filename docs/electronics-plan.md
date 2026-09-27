@@ -22,6 +22,14 @@ Current scope: colors, fonts, layout, copy and imagery. New commerce features, v
 
 ## Sequence
 
+Separately authorized follow-up: **Darakit SVG logo replacement complete, 2026-09-28.** Header/footer use the supplied outlined logo with homepage links and accessible labels. Lint/TypeScript passed; evidence and scope are in the handoff.
+
+Header sizing follow-up complete: larger wordmark from `sm` upward, existing favicon icon on mobile. Lint/TypeScript passed.
+
+Light-mode header logo follow-up complete: outline-free variants with navy wordmark letters; existing dark-mode appearance preserved. Lint/TypeScript and SVG geometry/color checks passed.
+
+Separately authorized follow-up: **Darakit rebrand complete, 2026-09-27.** Shared brand, bilingual hero copy, metadata for darakit.com and favicon label updated without design or commerce changes. ESLint/TypeScript passed; see handoff for evidence. Stop after this rebrand.
+
 2A–2D are complete and committed; stop at this boundary. Approved local database initialization and review setup remain unchanged. The priorities below are recommendations for separately authorized work, not an extension of the completed visual scope.
 
 ## Remaining work outside the completed scope

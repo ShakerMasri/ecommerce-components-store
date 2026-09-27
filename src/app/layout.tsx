@@ -8,8 +8,20 @@ import { storeConfig } from "~/config/store";
 import { AppPreferencesProvider } from "~/components/providers/AppPreferencesProvider";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(storeConfig.url),
   title: storeConfig.metadata.title,
   description: storeConfig.metadata.description,
+  openGraph: {
+    type: "website",
+    siteName: storeConfig.name,
+    title: storeConfig.metadata.title,
+    description: storeConfig.metadata.description,
+  },
+  twitter: {
+    card: "summary",
+    title: storeConfig.metadata.title,
+    description: storeConfig.metadata.description,
+  },
   icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
 };
 
