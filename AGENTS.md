@@ -1,32 +1,27 @@
-# Agent instructions
+# Project instructions
 
-## Start and scope
+Darakit is an independent electronics store using Next.js App Router, TypeScript, React, Prisma/PostgreSQL, Better Auth, Upstash, and Cloudinary. Preserve bilingual English/Arabic, RTL, accessibility, and existing storefront behavior.
 
-- Read `docs/agent-handoff.md`, then the relevant checkpoint in `docs/electronics-plan.md`. Do not reload legacy clothing prompts unless a specific unresolved requirement needs them.
-- Confirm the working directory, branch and working-tree changes once before editing; preserve unrelated user edits.
-- This is an independent electronics components store. Preserve Next.js App Router, strict TypeScript, React, Prisma/PostgreSQL, existing integrations and application behavior. Avoid major structural changes, speculative abstractions and unjustified `any`.
-- Reuse existing components, design patterns and typed public configuration. Edit accessible files directly; request only missing inputs.
+## Context
 
-## Autonomy
+- At a new task, check the actual repository, branch, and working tree. Preserve unrelated edits. Read `docs/agent-handoff.md` and only the requested section plus shared acceptance rules in `docs/release-plan.md`.
+- The completed frontend plan and previous handoffs are historical references. Read them only to resolve a relevant uncertainty. Verify findings against current code; avoid repeating the whole audit.
 
-- An authorized checkpoint includes routine local edits, related fixes, documentation updates and safe checks. Keep implementation, fixes and verification in the same session without per-file or small-change confirmations.
-- Honor existing explicit approvals within their scope. Proposals are not approvals.
-- Ask before unapproved destructive operations, production access, deployment, pushing/merging, schema changes (including applying migrations), business-logic changes, new services, significant dependencies or major scope expansion.
-- Before asking, prepare a concrete proposal: exact action and target, reason, impact, validation and rollback where relevant. Do permitted preparation first.
+## Scope and authority
 
-## Security and product boundaries
+- A requested release task authorizes its scoped edits, regression tests, and routine local checks. Finish those without asking for per-file approval.
+- A plan entry alone is not authorization. Ask for a concrete decision before unapproved schema/data migrations, major dependency changes, new services, destructive actions, production access, or scope expansion.
+- Keep production credentials/data outside this environment. Never print or commit secrets, auth state, or private test artifacts. Disposable test data may be changed only on an explicitly identified nonproduction target.
+- Commit, push, merge, and deploy only when requested. No unrelated refactors or broad formatting changes.
 
-- Preserve server-side authentication, authorization, customer ownership, input validation, CSRF protection, rate limiting, upload checks and safe caching. Hiding controls never replaces enforcement.
-- Keep pricing, discounts, totals, stock and variant availability server-controlled. Preserve cart item identity, checkout idempotency and historical order snapshots, including delivery charges and variant details.
-- Keep production secrets/data outside the agent-accessible development environment. `.gitignore` does not prevent agent access. Never print, commit or upload secrets; use sanitized diagnostics and nonproduction test data. Public configuration must contain no secrets.
-- Preserve English/Arabic, RTL, accessibility and mobile usability.
-- Use original code/assets or verified commercial-use permissions, retaining required notices. Check official documentation when version-specific details matter.
-- Report functional clothing assumptions separately; never disguise them with misleading labels or fabricated data. Do not advertise unsupported features or equate visual completion with production readiness.
+## Invariants
 
-## Efficient execution
+- Preserve server-side authorization, customer ownership, CSRF checks, validation, and abuse protection.
+- Prices, discounts, delivery charges, and stock remain server-controlled. Preserve checkout idempotency, transactional inventory, cart identity, and historical order snapshots.
+- Keep private responses out of shared caches. Use existing patterns and typed configuration; verify version-sensitive changes with primary documentation.
+- Do not invent catalog/business information or disguise clothing assumptions as electronics functionality.
 
-- Read relevant files and search narrowly with `rg`; avoid repeated repository audits, full scans and large log dumps. Reuse recorded findings unless stale, contradicted or insufficient for the current task.
-- Use existing scripts and checks appropriate to the change. Repeat checks when a fix or remaining risk justifies it. Avoid unnecessary test scaffolding for minor styling; never reduce necessary security checks to save tokens.
-- Distinguish reported results from checks actually run, and passed from skipped or blocked. Never invent results.
-- Update the plan and handoff at meaningful checkpoint boundaries or handover: checkpoint status in the plan; evidence, blockers and next action in the handoff. Keep durable rules here.
-- Keep responses brief: changes, verification, blockers and next action.
+## Completion
+
+- Follow the task's acceptance tests. Use focused checks during iteration; run the required pre-merge checks once the change is ready. Never report skipped or mocked integration tests as live verification.
+- Update task status/evidence in the release plan and replace the current handoff with a short summary. Keep history in Git. Report changes, checks, blockers, and the next action briefly.
