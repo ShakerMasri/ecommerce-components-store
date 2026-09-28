@@ -451,7 +451,10 @@ export async function POST(request: Request) {
 
     if (error instanceof Error && error.message === "EMAIL_NOT_VERIFIED") {
       return NextResponse.json(
-        { message: "Please verify your email before placing an order." },
+        {
+          code: "EMAIL_NOT_VERIFIED",
+          message: "Please verify your email before placing an order.",
+        },
         { status: 403 },
       );
     }

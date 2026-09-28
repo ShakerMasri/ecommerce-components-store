@@ -105,6 +105,24 @@ function createOrderInput() {
 }
 
 describe("customer order route", () => {
+  it("identifies an unverified email without creating an order or changing stock", async () => {
+    mocks.tx.user.findUnique.mockResolvedValueOnce({
+      emailVerified: false,
+    });
+
+    const response = await POST(createRequest(createOrderInput()));
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      code: "EMAIL_NOT_VERIFIED",
+      message: "Please verify your email before placing an order.",
+    });
+    expect(mocks.tx.order.create).not.toHaveBeenCalled();
+    expect(mocks.tx.product.updateMany).not.toHaveBeenCalled();
+    expect(mocks.tx.productVariant.updateMany).not.toHaveBeenCalled();
+    expect(mocks.tx.cartItem.deleteMany).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
 
