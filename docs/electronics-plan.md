@@ -22,6 +22,8 @@ Current scope: colors, fonts, layout, copy and imagery. New commerce features, v
 
 ## Sequence
 
+Separately authorized follow-up: **Checkout email verification feedback complete, 2026-09-28.** Unverified-email failures show bilingual inline guidance and an account resend link; server enforcement and phone behavior are unchanged. Lint/TypeScript and 20 focused order API tests passed; see handoff for verification limits.
+
 Separately authorized follow-up: **Darakit SVG logo replacement complete, 2026-09-28.** Header/footer use the supplied outlined logo with homepage links and accessible labels. Lint/TypeScript passed; evidence and scope are in the handoff.
 
 Header sizing follow-up complete: larger wordmark from `sm` upward, existing favicon icon on mobile. Lint/TypeScript passed.

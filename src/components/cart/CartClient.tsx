@@ -96,6 +96,7 @@ type Order = {
 };
 
 type CheckoutResponse = {
+  code?: string;
   errors?: { phone?: string[] };
   message?: string;
   order?: Order;
@@ -155,6 +156,8 @@ export function CartClient() {
   const [customer, setCustomer] = useState<CartCustomer | null>(null);
   const [phoneInput, setPhoneInput] = useState<string | null>(null);
   const [phoneServerError, setPhoneServerError] = useState(false);
+  const [emailVerificationRequired, setEmailVerificationRequired] =
+    useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [isAuthRequired, setIsAuthRequired] = useState(false);
@@ -395,6 +398,7 @@ export function CartClient() {
     }
 
     setCheckoutStatus("loading");
+    setEmailVerificationRequired(false);
     setMessage("");
 
     checkoutKeyRef.current ??= crypto.randomUUID();
@@ -425,6 +429,10 @@ export function CartClient() {
 
         setCheckoutStatus("error");
         setIsConfirmingOrder(false);
+        if (response.status === 403 && data.code === "EMAIL_NOT_VERIFIED") {
+          setEmailVerificationRequired(true);
+          return;
+        }
         setPhoneServerError(Boolean(data.errors?.phone?.length));
         setMessage(data.errors?.phone?.length ? "" : t.cart.failedToPlaceOrder);
         return;
@@ -1114,6 +1122,21 @@ export function CartClient() {
               </span>
             </div>
           </div>
+
+          {emailVerificationRequired ? (
+            <p
+              className="mt-2 text-xs font-semibold text-[var(--danger-ink)]"
+              role="alert"
+            >
+              {t.cart.emailVerificationRequired}{" "}
+              <Link
+                href="/account"
+                className="underline underline-offset-2 focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none"
+              >
+                {t.account.resendVerificationEmail}
+              </Link>
+            </p>
+          ) : null}
 
           {submitAreaMessage ? (
             <div

@@ -171,6 +171,7 @@ export type TranslationDictionary = {
     failedToUpdate: string;
     failedToRemove: string;
     failedToPlaceOrder: string;
+    emailVerificationRequired: string;
     failedToAddItem: string;
     itemAddedToCart: string;
     addingToCart: string;
@@ -918,6 +919,8 @@ export const translations: Record<Language, TranslationDictionary> = {
       failedToUpdate: "Failed to update item.",
       failedToRemove: "Failed to remove item.",
       failedToPlaceOrder: "Failed to place order.",
+      emailVerificationRequired:
+        "Please verify your email before placing an order. Check your inbox for the verification link, or resend it from your account page.",
       failedToAddItem: "Failed to add item to cart.",
       itemAddedToCart: "Item added to cart.",
       addingToCart: "Adding...",
@@ -1694,6 +1697,8 @@ export const translations: Record<Language, TranslationDictionary> = {
       failedToUpdate: "فشل تحديث المنتج.",
       failedToRemove: "فشل حذف المنتج.",
       failedToPlaceOrder: "فشل إنشاء الطلب.",
+      emailVerificationRequired:
+        "يرجى تأكيد بريدك الإلكتروني قبل إتمام الطلب. تحقق من صندوق الوارد للعثور على رابط التأكيد، أو أعد إرسال الرسالة من صفحة حسابك.",
       failedToAddItem: "فشل إضافة المنتج إلى السلة.",
       itemAddedToCart: "تمت إضافة المنتج إلى السلة.",
       addingToCart: "جار الإضافة...",

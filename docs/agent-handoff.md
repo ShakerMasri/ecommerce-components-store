@@ -7,6 +7,12 @@ Updated: 2026-09-26. **2A–2D complete and committed; current frontend visual s
 - Local folder: `D:\ecommerce-components-store`.
 - Windows/PowerShell; verified branch: `electronics/setup`.
 
+## Checkout email verification feedback — complete, 2026-09-28
+
+- Started with a clean tree on `feature/darakit-polish`. The existing unverified-email 403 now includes `EMAIL_NOT_VERIFIED`; Checkout uses it to show an English/Arabic inline alert in the field-error style, with inbox guidance and a link to the existing account resend option. Other failures retain their existing feedback. Server enforcement, CSRF, registration, Google sign-in and phone behavior are unchanged.
+- Verification: lint/TypeScript and `git diff --check` passed; focused order API suite passed 20 tests, including rejection without order/stock/cart mutations. The test runner required escalation after sandbox `spawn EPERM`. Browser review not run. Prettier reports formatting differences in the three checkout/API files; avoided broad reformatting to preserve the minimal diff.
+- Next action: stop; requested feedback fix complete.
+
 ## Darakit SVG logo — complete, 2026-09-28
 
 - On `feature/darakit-polish`, preserved existing working-tree edits. Added `public/darakit-logo.svg` from the supplied outlined SVG, trimming only transparent canvas margins. Header/footer logos link to `/` with accessible name `Darakit home`; retained surrounding layout and controls.
