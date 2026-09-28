@@ -7,6 +7,21 @@ Updated: 2026-09-26. **2A–2D complete and committed; current frontend visual s
 - Local folder: `D:\ecommerce-components-store`.
 - Windows/PowerShell; verified branch: `electronics/setup`.
 
+## Darakit SVG logo — complete, 2026-09-28
+
+- On `feature/darakit-polish`, preserved existing working-tree edits. Added `public/darakit-logo.svg` from the supplied outlined SVG, trimming only transparent canvas margins. Header/footer logos link to `/` with accessible name `Darakit home`; retained surrounding layout and controls.
+- Verification: `npm.cmd run check` and `git diff --check` passed. Local Chromium measured SVG artwork bounds for cropping. Full-page browser review not run. Prettier check reports formatting differences in both components; avoided unrelated formatting changes.
+- Next action: stop; requested logo replacement complete.
+- Follow-up: enlarged header wordmark to 160px wide at `sm` and above; below `sm`, use the existing favicon circuit D at 44px. Homepage link/accessibility and footer are unchanged. `npm.cmd run check` and scoped `git diff --check` passed; full-page browser review not run.
+- Light-mode follow-up: user identified the dark outline as the issue. Added outline-free header wordmark/icon variants; white wordmark letters become navy on light backgrounds. Header selects assets using the existing theme state; dark-mode assets, favicon and footer preserved. Lint/TypeScript, scoped diff check and SVG path/color assertions passed. Browser visual review not run.
+
+## Darakit rebrand — complete, 2026-09-27
+
+- Updated shared English/Arabic brand configuration to Darakit, public metadata base to `https://darakit.com`, title/description and Open Graph/Twitter metadata, bilingual homepage hero copy and favicon accessible label. Header, footer, policy titles and existing brand messages inherit the shared name. Styling and functionality are unchanged.
+- Preserved pre-existing edits in order API/validation files and CartClient; no product data, variants, checkout logic or authentication changes. Existing contact placeholders and functional clothing assumptions remain separate from branding.
+- Verification: `npm.cmd run check` passed (ESLint/TypeScript); changed application files formatted with Prettier. Source/public scan found no old store names or generic “Electronics Store” in UI/metadata. No browser, build or production checks run for this text/metadata-only change.
+- Next action: stop; rebrand complete. Release blockers below remain unchanged.
+
 ## Frontend scope closeout
 
 - Verified local commit history and file summaries: 2A `8dbb31e` (2026-09-24), 2B `3b867ce` (2026-09-25), and combined 2C/2D `6ef023c` (2026-09-26). All are on the current branch; working tree was clean before this documentation update. Remote/push status was not assessed.

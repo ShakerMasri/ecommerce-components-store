@@ -8,26 +8,27 @@ import { contactConfig } from "~/config/contact";
  * Sensitive deployment settings must stay in environment variables validated by src/env.js.
  */
 export const storeConfig = {
-  name: "Components Store",
-  shortName: "Components Store",
+  name: "Darakit",
+  shortName: "Darakit",
+  url: "https://darakit.com",
   description:
-    "Electronic components for circuits, prototypes and university projects.",
+    "Darakit: electronic components for circuits, prototypes and university projects.",
   metadata: {
-    title: "Components Store",
+    title: "Darakit",
     description:
-      "Browse electronic components, review product details and check available options.",
+      "Browse electronic components at Darakit, review product details and check available options.",
   },
   contact: contactConfig,
   locales: {
     en: {
-      name: "Components Store",
-      logoStart: "Components",
-      logoAccent: "Store",
+      name: "Darakit",
+      logoStart: "Darakit",
+      logoAccent: "",
     },
     ar: {
-      name: "متجر المكوّنات",
-      logoStart: "متجر",
-      logoAccent: "المكوّنات",
+      name: "Darakit",
+      logoStart: "Darakit",
+      logoAccent: "",
     },
   },
 } as const;

@@ -785,8 +785,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       badge: "Electronics components",
       titleStart: "Build your next",
       titleBrand: "project",
-      description:
-        "Explore components for circuits, prototypes and university projects. Browse the catalog for current products, prices and availability.",
+      description: `Explore components at ${englishStoreName} for circuits, prototypes and university projects. Browse the catalog for current products, prices and availability.`,
       flowTitle: "From idea to circuit",
       highlights: [
         {
@@ -1568,8 +1567,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       badge: "مكوّنات إلكترونية",
       titleStart: "ابدأ بناء",
       titleBrand: "مشروعك القادم",
-      description:
-        "استكشف مكوّنات للدوائر والنماذج الأولية والمشاريع الجامعية. تصفّح الكتالوج للاطلاع على المنتجات والأسعار والتوفر الحالي.",
+      description: `استكشف مكوّنات ${arabicStoreName} للدوائر والنماذج الأولية والمشاريع الجامعية. تصفّح الكتالوج للاطلاع على المنتجات والأسعار والتوفر الحالي.`,
       flowTitle: "من الفكرة إلى الدائرة",
       highlights: [
         {
