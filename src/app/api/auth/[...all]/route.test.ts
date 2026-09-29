@@ -1,10 +1,29 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type * as RateLimitModule from "~/lib/rate-limit";
 
 const mocks = vi.hoisted(() => ({
   handlerGet: vi.fn(() => new Response(null, { status: 200 })),
   handlerPost: vi.fn(() => Response.json({ ok: true })),
   rateLimit: vi.fn(),
+  redisLimit: vi.fn(),
 }));
+
+vi.mock("~/env", () => ({
+  env: {
+    NODE_ENV: "test",
+    UPSTASH_REDIS_REST_URL: "https://example-upstash.com",
+    UPSTASH_REDIS_REST_TOKEN: "test-token",
+  },
+}));
+vi.mock("@upstash/redis", () => ({ Redis: class {} }));
+vi.mock("@upstash/ratelimit", () => ({
+  Ratelimit: class {
+    static slidingWindow = vi.fn();
+    limit = mocks.redisLimit;
+  },
+}));
+
+afterEach(() => vi.restoreAllMocks());
 
 vi.mock("better-auth/next-js", () => ({
   toNextJsHandler: vi.fn(() => ({
@@ -34,6 +53,48 @@ function createJsonRequest(path: string, body: unknown) {
 }
 
 describe("POST /api/auth/[...all]", () => {
+  it.each([
+    ["/sign-in/email", 0],
+    ["/sign-up/email", 0],
+    ["/request-password-reset", 0],
+    ["/send-verification-email", 0],
+    ["/send-verification-email", 1],
+    ["/send-verification-email", 2],
+  ] as const)(
+    "stops auth/email side effects at %s limiter %i",
+    async (path, allowedChecks) => {
+      const actual =
+        await vi.importActual<typeof RateLimitModule>("~/lib/rate-limit");
+      mocks.rateLimit.mockImplementation(actual.rateLimit);
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      for (const outcome of ["denied", "error", "timeout"] as const) {
+        mocks.redisLimit.mockReset();
+        for (let i = 0; i < allowedChecks; i++) {
+          mocks.redisLimit.mockResolvedValueOnce({ success: true });
+        }
+        if (outcome === "error")
+          mocks.redisLimit.mockRejectedValueOnce(new Error("offline"));
+        else
+          mocks.redisLimit.mockResolvedValueOnce({
+            success: outcome === "timeout",
+            reason: outcome === "timeout" ? "timeout" : undefined,
+            limit: 1,
+            remaining: 0,
+            reset: Date.now() + 10_000,
+          });
+        const response = await POST(
+          createJsonRequest(`/api/auth${path}`, {
+            email: "test@example.com",
+            password: "password123",
+          }),
+        );
+        expect(response.status).toBe(outcome === "denied" ? 429 : 503);
+        expect(mocks.redisLimit).toHaveBeenCalledTimes(allowedChecks + 1);
+        expect(mocks.handlerPost).not.toHaveBeenCalled();
+      }
+    },
+  );
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.rateLimit.mockResolvedValue({ ok: true });

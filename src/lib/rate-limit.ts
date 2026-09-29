@@ -91,6 +91,9 @@ const limiters = redis
   : null;
 
 function getClientIp(request: Request) {
+  // Deployment requirement: these headers are trustworthy only if the verified
+  // ingress overwrites them and prevents direct access. Host selection and spoof
+  // checks are still pending; see R2 in docs/release-plan.md.
   const forwardedFor = request.headers.get("x-forwarded-for");
 
   if (forwardedFor) {
@@ -116,12 +119,20 @@ function getIdentifier(request: Request, identifier?: string) {
   return `ip:${getClientIp(request)}`;
 }
 
-function getSafeErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
+function unavailable(bucket: RateLimitBucket): RateLimitResult {
+  // Catalog reads deliberately remain available during Redis outages.
+  if (bucket === "publicRead") return { ok: true };
 
-  return "Unknown rate limit error.";
+  return {
+    ok: false,
+    response: NextResponse.json(
+      {
+        code: "RATE_LIMIT_UNAVAILABLE",
+        message: "Service temporarily unavailable. Please try again later.",
+      },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    ),
+  };
 }
 
 export async function rateLimit(
@@ -130,13 +141,19 @@ export async function rateLimit(
   identifier?: string,
 ): Promise<RateLimitResult> {
   if (!limiters) {
-    return { ok: true };
+    return env.NODE_ENV === "production" ? unavailable(bucket) : { ok: true };
   }
 
   try {
     const result = await limiters[bucket].limit(
       getIdentifier(request, identifier),
     );
+
+    // Upstash's default five-second timeout returns success: true.
+    if (result.reason === "timeout") {
+      console.error("Rate limit check timed out:", bucket);
+      return unavailable(bucket);
+    }
 
     if (result.success) {
       return { ok: true };
@@ -164,9 +181,10 @@ export async function rateLimit(
         },
       ),
     };
-  } catch (error) {
-    console.error("Rate limit check failed:", getSafeErrorMessage(error));
+  } catch {
+    // Do not log Redis error text: it can contain credentials or request data.
+    console.error("Rate limit check failed:", bucket);
 
-    return { ok: true };
+    return unavailable(bucket);
   }
 }

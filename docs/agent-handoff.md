@@ -1,12 +1,11 @@
 # Current handoff
 
-Updated: 2026-09-29. R1 code verified; integration acceptance remains pending.
+Updated: 2026-09-29. R2 code verified; deployment/IP trust and staging acceptance pending.
 
-- Repository: `D:\ecommerce-components-store`; branch `fix/r1-dependencies-images`; base/HEAD `be5e12b0e83820570f1ca89c3fef7ea115211939`. Preserved prior R1 edits; all changes remain uncommitted.
-- Next/tooling 15.5.26, scoped PostCSS 8.5.28 override, compatible security fixes, and global image-optimizer disablement retained. Cloudinary/image behavior is unchanged.
-- Approved Nodemailer 10.0.12 installed; removed redundant external types. Official v9/v10 breaking changes checked; Node ≥20 requirement fits repository/CI/local versions. Application email/auth code and production log mode are unchanged; log-mode safety remains R3.
-- PASS this follow-up: clean install, lint/types, full suite **34 files / 209 tests**, validated production build with dummy services (32 static pages), formatting and diff check. Eleven new email tests exercise actual verification/reset callbacks, order construction, in-memory MIME, and mocked transport success/failure without external mail.
-- Audit: **3 high package findings**, all Prisma 6.19.3 → config 6.19.3 → deepmerge-ts 7.1.5; no Nodemailer finding. Recommend documented deferral: merge inputs are trusted local configuration, no runtime request path identified, zero config cycles, no config dependencies in 49 build traces. No Prisma upgrade/override applied. See R1 for evidence and reassessment triggers.
-- Prior eight-view image review and three endpoint 404 checks remain recorded, not rerun for this email-only follow-up. Actual catalog/Cloudinary account, SMTP delivery/link flows, and database-backed integrations remain unverified.
-- No database writes, external emails, commit, push, merge, deployment, R2, or R3 work. Earlier validation server/Prisma Studio remain stopped.
-- Next: review advisory deferral and authorize suitable nonproduction integration checks. R1 is CODE VERIFIED / INTEGRATION PENDING, not DONE.
+- Repository: `D:\ecommerce-components-store`; branch `fix/r2-rate-limiting`; starting HEAD `e926cb11c9279cc5c3d1cf371eb8a17058c2ef70`. Started clean; only R2 edits, all uncommitted.
+- Sensitive rate-limit buckets return 503 on Redis errors and Upstash timeout successes; missing production configuration also rejects. Normal allowed requests and 429/Retry-After remain unchanged. Public reads deliberately allow outages; local development without Redis remains supported. No fallback service or caller refactor.
+- PASS: focused tests **3 files / 53 tests**; required full regression **34 files / 230 tests**; lint/types, scoped formatting, diff check. Real helper plus mocked Redis/route dependencies prove auth/email handlers and checkout transaction, stock/cart/profile/order writes, and notification email stop on failures. No live integration verification.
+- User confirmed hosting/proxy is undecided. Existing forwarding-header parser is not a verified trust boundary; see R2 for pending canonical IP extraction, header-spoofing tests, proxy chain rules, and direct-origin restrictions. Auth IP protection cannot be considered deployment-ready until these checks pass. User-key isolation is tested.
+- Staging quota/outage/recovery smoke tests await an identified nonproduction target. No production data, external mail, database writes, or new services.
+- R1 evidence remains in the release plan; audit/install/build/browser checks were not repeated. R1 integration work and documented Prisma advisory deferral remain unchanged.
+- Next: finalize host/proxy trust policy and authorize staging checks. R2 is CODE VERIFIED / INTEGRATION PENDING, not DONE. No commit, push, merge, deploy, or R3 work.

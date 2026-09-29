@@ -13,7 +13,7 @@ Status values: TODO, IN PROGRESS, CODE VERIFIED / INTEGRATION PENDING, BLOCKED, 
 | Task | Scope | Status | Evidence / remaining blocker |
 |---|---|---|---|
 | R1 | Vulnerable dependencies and image optimizer | CODE VERIFIED / INTEGRATION PENDING | Nodemailer 10.0.12 approved and verified; 209 tests pass. Prisma advisory deferral recommended; actual catalog/services unverified. |
-| R2 | Rate-limit failures and trusted client IP | TODO | Redis errors/timeouts allow requests |
+| R2 | Rate-limit failures and trusted client IP | CODE VERIFIED / INTEGRATION PENDING | Failures reject sensitive requests; hosting/IP trust and staging checks pending |
 | R3 | Production email safety | TODO | Log delivery allowed in production |
 | R4 | Phone normalization and validation | TODO | Punctuation-only input accepted |
 | R5 | Admin inventory filtering/sorting | TODO | Uses legacy Product.stock |
@@ -80,6 +80,21 @@ For configured production mutation/auth limiters, Redis errors and timeout resul
 Use a client-IP trust policy appropriate to the actual hosting proxy. Do not assume arbitrary forwarding headers are authentic. Ask which host/proxy will be used if unknown; complete independent failure-handling work meanwhile. No invented universal proxy rule or new service.
 
 Accept: mocked success/429/error/timeout/missing-config cases; user-key isolation; proxy spoofing checks against the selected host's documented behavior; staging quota/outage smoke checks. Auth/checkout must not silently lose their configured protection. Mark host/integration work pending if unavailable.
+
+### R2 evidence — 2026-09-29
+
+Branch `fix/r2-rate-limiting`, starting HEAD `e926cb11c9279cc5c3d1cf371eb8a17058c2ef70`; working tree was clean. Only R2 helper, regression tests, and handoff/plan changed; no commit or deployment.
+
+- Sensitive buckets now return a controlled **503** (`RATE_LIMIT_UNAVAILABLE`, `Cache-Control: no-store`) on Redis exceptions or `reason: "timeout"`, before checking `success`. Missing production Redis configuration also rejects sensitive requests; existing environment validation remains intact. Allowed requests and actual **429** quota headers/Retry-After are preserved. Public catalog reads deliberately remain permissive during outages; development/test without Redis remains supported. No fallback system added. Logs contain only failure category and bucket, not raw Redis errors.
+- Inspected installed `@upstash/ratelimit` 2.0.8 (`dist/index.js`, constructor/applyTimeout) and [official timeout documentation](https://upstash.com/docs/redis/sdks/ratelimit-ts/features#timeout): default timeout is five seconds and returns `success: true`, `reason: "timeout"`. The existing library deadline remains in use.
+- Reviewed auth POST wrapper, login/signup/reset/verification email callbacks, checkout order/email path, and mutation callers. Existing `!limited.ok` early returns already stop protected handlers; no caller refactor needed. Tests combine the actual helper with mocked Redis and route dependencies: failure at auth or either verification-email gate never reaches Better Auth; checkout failures never reach the transaction, order/profile/stock/cart writes, or notification email. Existing allowed/429 tests remain, with added all-sensitive-bucket error/timeout, production missing/partial config, public-read outage, and user-key isolation cases.
+- **PASS** focused: `npm.cmd run test:run -- src/lib/rate-limit.test.ts 'src/app/api/auth/[...all]/route.test.ts' src/app/api/orders/route.test.ts` — **3 files / 53 tests**.
+- **PASS** shared regression gate: `npm.cmd run test:run` — **34 files / 230 tests**. All integrations here are mocked; no external Redis, database, or email verification is claimed.
+- **PASS** `npm.cmd run check` (lint/types), scoped Prettier formatting, and `git diff --check`. Initial sandbox-only formatting/test attempts failed with EPERM; approved execution outside the sandbox succeeded. R1 audit/install/build/browser evidence reused without reruns; no dependency changes.
+- **BLOCKED / deployment requirement:** user confirmed production hosting/reverse proxy is not finalized. Current IP parser still selects the first `x-forwarded-for` entry, then `x-real-ip`, then `cf-connecting-ip`, then `local`; this is **not verified trustworthy** and can be spoofed on an ingress that forwards arbitrary client headers. No provider-specific policy was invented. Before release, select the host/proxy, verify its documented canonical client-IP source and header overwrite/chain rules, restrict direct origin access, implement extraction for that exact trust boundary, and test forged headers, multi-hop chains, missing headers, and origin bypass. Auth's anonymous IP keys remain subject to this unresolved requirement; authenticated checkout/mutation keys use server session user IDs and tests show forwarding headers cannot change those keys. Better Auth's own IP behavior must also be checked against the chosen ingress; it is not a substitute for this gate.
+- **BLOCKED / integration:** staging quota/Retry-After and Redis outage/timeout smoke checks await an explicitly identified nonproduction target. Verify no login/email/order side effects and successful recovery there. No production credentials/data accessed.
+
+Next: finalize deployment trust policy and authorize nonproduction staging smoke checks. R2 is **CODE VERIFIED / INTEGRATION PENDING**, not DONE. R3 was not started.
 
 ## R3 — Production email
 

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 type EnvMock = {
+  NODE_ENV?: "test" | "production";
   UPSTASH_REDIS_REST_URL?: string;
   UPSTASH_REDIS_REST_TOKEN?: string;
 };
@@ -45,7 +46,7 @@ async function loadRateLimit(envMock: EnvMock, limitMock = vi.fn()) {
 
   vi.doMock("~/env", () => ({
     env: {
-      NODE_ENV: "test",
+      NODE_ENV: envMock.NODE_ENV ?? "test",
       APP_URL: "http://localhost:3000",
       UPSTASH_REDIS_REST_URL: envMock.UPSTASH_REDIS_REST_URL,
       UPSTASH_REDIS_REST_TOKEN: envMock.UPSTASH_REDIS_REST_TOKEN,
@@ -240,7 +241,7 @@ describe("rateLimit", () => {
     }
   });
 
-  it("allows requests if the limiter throws", async () => {
+  it("rejects requests if the limiter throws", async () => {
     const consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
@@ -257,10 +258,123 @@ describe("rateLimit", () => {
 
     const result = await rateLimit(createRequest(), "cartMutation");
 
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.response.status).toBe(503);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       "Rate limit check failed:",
-      "Upstash failed",
+      "cartMutation",
     );
+  });
+
+  it.each([
+    "auth",
+    "verificationEmail",
+    "profileUpdate",
+    "cartMutation",
+    "orderCreate",
+    "adminMutation",
+    "adminUpload",
+  ] as const)("rejects errors and timeout successes for %s", async (bucket) => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const limitMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("private Redis details"))
+      .mockResolvedValueOnce({
+        success: true,
+        reason: "timeout",
+        reset: 0,
+        limit: 0,
+        remaining: 0,
+      });
+    const { rateLimit } = await loadRateLimit(
+      {
+        UPSTASH_REDIS_REST_URL: "https://example-upstash.com",
+        UPSTASH_REDIS_REST_TOKEN: "test-token",
+      },
+      limitMock,
+    );
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = await rateLimit(createRequest(), bucket, "user-1");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.response.status).toBe(503);
+        expect(result.response.headers.get("Cache-Control")).toBe("no-store");
+        expect(result.response.headers.has("X-RateLimit-Limit")).toBe(false);
+        expect(await result.response.json()).toEqual({
+          code: "RATE_LIMIT_UNAVAILABLE",
+          message: "Service temporarily unavailable. Please try again later.",
+        });
+      }
+    }
+    expect(JSON.stringify(log.mock.calls)).not.toContain(
+      "private Redis details",
+    );
+  });
+
+  it("deliberately allows public reads on errors and timeouts", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const limitMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ success: true, reason: "timeout" });
+    const { rateLimit } = await loadRateLimit(
+      {
+        UPSTASH_REDIS_REST_URL: "https://example-upstash.com",
+        UPSTASH_REDIS_REST_TOKEN: "test-token",
+      },
+      limitMock,
+    );
+    expect(await rateLimit(createRequest(), "publicRead")).toEqual({
+      ok: true,
+    });
+    expect(await rateLimit(createRequest(), "publicRead")).toEqual({
+      ok: true,
+    });
+  });
+
+  it.each([
+    {},
+    { UPSTASH_REDIS_REST_URL: "https://example-upstash.com" },
+    { UPSTASH_REDIS_REST_TOKEN: "test-token" },
+  ])(
+    "rejects production mutations with missing Redis configuration: %j",
+    async (config) => {
+      const { rateLimit } = await loadRateLimit({
+        ...config,
+        NODE_ENV: "production",
+      });
+      const result = await rateLimit(createRequest(), "auth");
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.response.status).toBe(503);
+      expect(await rateLimit(createRequest(), "publicRead")).toEqual({
+        ok: true,
+      });
+    },
+  );
+
+  it("isolates user keys regardless of supplied forwarding headers", async () => {
+    const limitMock = vi.fn().mockResolvedValue({ success: true });
+    const { rateLimit } = await loadRateLimit(
+      {
+        UPSTASH_REDIS_REST_URL: "https://example-upstash.com",
+        UPSTASH_REDIS_REST_TOKEN: "test-token",
+      },
+      limitMock,
+    );
+    for (const id of ["customer-1", "customer-2"]) {
+      await rateLimit(
+        createRequest({
+          "x-forwarded-for": "spoofed",
+          "x-real-ip": "spoofed",
+          "cf-connecting-ip": "spoofed",
+        }),
+        "orderCreate",
+        id,
+      );
+    }
+    expect(limitMock.mock.calls).toEqual([
+      ["user:customer-1"],
+      ["user:customer-2"],
+    ]);
   });
 });
