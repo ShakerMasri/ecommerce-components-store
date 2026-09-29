@@ -74,13 +74,9 @@ const config = {
   poweredByHeader: false,
 
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        pathname: "/**",
-      },
-    ],
+    // Product images use Cloudinary delivery transformations; logos are SVGs.
+    // Disable the unused /_next/image endpoint as well as client optimization.
+    unoptimized: true,
   },
 
   async headers() {

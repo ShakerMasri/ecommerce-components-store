@@ -59,6 +59,9 @@ jobs:
         run: npm run test:run
 
       - name: Build
+        # Placeholder build validation only; this does not verify live services.
+        env:
+          NODE_ENV: production
         run: npm run build
 
       - name: License audit
