@@ -68,6 +68,11 @@ async function sendEmail(
   { to, subject, text, html }: SendEmailInput,
   options: { logOnlyFirstUrl?: boolean } = {},
 ) {
+  // Fail closed even if a caller supplies an unvalidated environment.
+  if (env.NODE_ENV === "production" && env.EMAIL_DELIVERY_MODE !== "smtp") {
+    throw new Error("Production email delivery requires SMTP.");
+  }
+
   if (env.EMAIL_DELIVERY_MODE === "log" || isDevelopmentEmailPlaceholder()) {
     const url = options.logOnlyFirstUrl ? extractUrlFromText(text) : null;
 
@@ -86,23 +91,32 @@ async function sendEmail(
     return;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: env.SMTP_PORT === 465,
-    auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASSWORD,
-    },
-  });
+  try {
+    const transporter = nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_PORT === 465,
+      auth: {
+        user: env.SMTP_USER,
+        pass: env.SMTP_PASSWORD,
+      },
+    });
 
-  await transporter.sendMail({
-    from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
-    to,
-    subject,
-    text,
-    html,
-  });
+    await transporter.sendMail({
+      from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+      to,
+      subject,
+      text,
+      html,
+    });
+  } catch (error) {
+    // Provider errors can contain credentials or message content. Do not pass
+    // the original error (including its cause) to production callers/loggers.
+    if (env.NODE_ENV === "production") {
+      throw new Error("Email delivery failed.");
+    }
+    throw error;
+  }
 }
 
 export async function sendAuthEmail(input: SendAuthEmailInput) {
