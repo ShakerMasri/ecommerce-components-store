@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type * as RateLimitModule from "~/lib/rate-limit";
 
 const mocks = vi.hoisted(() => {
   const tx = {
@@ -26,11 +27,15 @@ const mocks = vi.hoisted(() => {
   return {
     auth: vi.fn(),
     rateLimit: vi.fn(),
+    redisLimit: vi.fn(),
     validateSameOriginRequest: vi.fn(),
     getDeliveryAreaByKey: vi.fn(),
     isDeliveryAreaKey: vi.fn(),
     sendOrderNotificationEmail: vi.fn(),
     env: {
+      NODE_ENV: "test",
+      UPSTASH_REDIS_REST_URL: "https://example-upstash.com",
+      UPSTASH_REDIS_REST_TOKEN: "test-token",
       ORDER_NOTIFICATION_EMAIL: "owner@example.com",
     },
     tx,
@@ -53,6 +58,16 @@ vi.mock("~/server/auth", () => ({
 vi.mock("~/lib/rate-limit", () => ({
   rateLimit: mocks.rateLimit,
 }));
+
+vi.mock("@upstash/redis", () => ({ Redis: class {} }));
+vi.mock("@upstash/ratelimit", () => ({
+  Ratelimit: class {
+    static slidingWindow = vi.fn();
+    limit = mocks.redisLimit;
+  },
+}));
+
+afterEach(() => vi.restoreAllMocks());
 
 vi.mock("~/lib/csrf", () => ({
   validateSameOriginRequest: mocks.validateSameOriginRequest,
@@ -105,6 +120,36 @@ function createOrderInput() {
 }
 
 describe("customer order route", () => {
+  it.each(["denied", "error", "timeout"] as const)(
+    "stops checkout side effects when limiter returns %s",
+    async (outcome) => {
+      const actual =
+        await vi.importActual<typeof RateLimitModule>("~/lib/rate-limit");
+      mocks.rateLimit.mockImplementation(actual.rateLimit);
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      if (outcome === "error")
+        mocks.redisLimit.mockRejectedValueOnce(new Error("offline"));
+      else
+        mocks.redisLimit.mockResolvedValueOnce({
+          success: outcome === "timeout",
+          reason: outcome === "timeout" ? "timeout" : undefined,
+          limit: 5,
+          remaining: 0,
+          reset: Date.now() + 10_000,
+        });
+      const response = await POST(createRequest(createOrderInput()));
+      expect(response.status).toBe(outcome === "denied" ? 429 : 503);
+      expect(mocks.redisLimit).toHaveBeenCalledWith("user:user-1");
+      expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+      expect(mocks.tx.order.create).not.toHaveBeenCalled();
+      expect(mocks.tx.user.update).not.toHaveBeenCalled();
+      expect(mocks.tx.product.updateMany).not.toHaveBeenCalled();
+      expect(mocks.tx.productVariant.updateMany).not.toHaveBeenCalled();
+      expect(mocks.tx.cartItem.deleteMany).not.toHaveBeenCalled();
+      expect(mocks.sendOrderNotificationEmail).not.toHaveBeenCalled();
+    },
+  );
+
   it("identifies an unverified email without creating an order or changing stock", async () => {
     mocks.tx.user.findUnique.mockResolvedValueOnce({
       emailVerified: false,
