@@ -50,19 +50,25 @@ export const env = createEnv({
       .enum(["development", "test", "production"])
       .default("development"),
 
-    SMTP_HOST: z.string().min(1),
-    SMTP_PORT: z.coerce.number().int().positive(),
-    SMTP_USER: z.string().min(1),
+    SMTP_HOST: z.string().trim().min(1),
+    SMTP_PORT: z.coerce.number().int().positive().max(65535),
+    SMTP_USER: z.string().trim().min(1),
     SMTP_PASSWORD: z.string().min(1),
     SMTP_FROM_EMAIL: z.string().email(),
-    SMTP_FROM_NAME: z.string().min(1),
+    SMTP_FROM_NAME: z.string().trim().min(1),
 
     ORDER_NOTIFICATION_EMAIL: z.preprocess(
       (value) => (value === "" ? undefined : value),
       z.string().email().optional(),
     ),
 
-    EMAIL_DELIVERY_MODE: z.enum(["smtp", "log"]).default("smtp"),
+    EMAIL_DELIVERY_MODE: z
+      .enum(["smtp", "log"])
+      .default("smtp")
+      .refine(
+        (mode) => process.env.NODE_ENV !== "production" || mode === "smtp",
+        { message: "Production email delivery requires SMTP." },
+      ),
 
     UPSTASH_REDIS_REST_URL:
       process.env.NODE_ENV === "production"
@@ -115,7 +121,8 @@ export const env = createEnv({
     CLOUDINARY_PRODUCT_FOLDER: process.env.CLOUDINARY_PRODUCT_FOLDER,
   },
 
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation:
+    process.env.NODE_ENV !== "production" && !!process.env.SKIP_ENV_VALIDATION,
 
   emptyStringAsUndefined: true,
 });

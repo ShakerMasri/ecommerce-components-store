@@ -97,12 +97,21 @@ beforeEach(() => {
   env.NODE_ENV = "production";
   env.EMAIL_DELIVERY_MODE = "smtp";
   env.SMTP_PORT = 587;
+  env.SMTP_HOST = "smtp.example.invalid";
   env.ORDER_NOTIFICATION_EMAIL = "orders@example.com";
   transport = createLocalTransport();
   vi.spyOn(nodemailer, "createTransport").mockReturnValue(transport);
   sendMail = spyOnSendMail();
+  for (const method of ["log", "warn", "error", "info", "debug"] as const) {
+    vi.spyOn(console, method).mockImplementation(() => undefined);
+  }
 });
 afterEach(() => {
+  if (env.NODE_ENV === "production") {
+    for (const method of ["log", "warn", "error", "info", "debug"] as const) {
+      expect(console[method]).not.toHaveBeenCalled();
+    }
+  }
   transport.close();
   vi.restoreAllMocks();
 });
@@ -143,13 +152,17 @@ describe("email delivery with Nodemailer", () => {
   );
 
   it.each(messages)(
-    "propagates transport failure for $name",
+    "rejects safely on production transport failure for $name",
     async (message) => {
-      const failure = new Error("Local test transport failed");
+      const failure = new Error(
+        `${message.url} private body ${env.SMTP_USER} ${env.SMTP_PASSWORD}`,
+      );
       vi.spyOn(transport.transporter, "send").mockImplementation(
         (_mail, callback) => callback(failure),
       );
-      await expect(message.send()).rejects.toBe(failure);
+      await expect(message.send()).rejects.toEqual(
+        new Error("Email delivery failed."),
+      );
       expect(sendMail).toHaveBeenCalledTimes(1);
     },
   );
@@ -206,19 +219,73 @@ describe("email delivery with Nodemailer", () => {
     );
   });
 
-  it("preserves explicit development log delivery without transport", async () => {
-    env.NODE_ENV = "development";
-    env.EMAIL_DELIVERY_MODE = "log";
-    const log = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    await sendAuthEmail({
-      to: user.email,
-      subject: "Test",
-      text: "Open https://store.example/local-fixture",
-      html: "<p>Test</p>",
+  it.each(messages)(
+    "rejects production log delivery for $name",
+    async (message) => {
+      env.EMAIL_DELIVERY_MODE = "log";
+      await expect(message.send()).rejects.toThrow(
+        "Production email delivery requires SMTP.",
+      );
+      expect(nodemailer.createTransport).not.toHaveBeenCalled();
+    },
+  );
+
+  it("sanitizes synchronous transport setup failures without an error cause", async () => {
+    vi.mocked(nodemailer.createTransport).mockImplementation(() => {
+      throw new Error(`${env.SMTP_PASSWORD} ${verificationUrl}`);
     });
-    expect(nodemailer.createTransport).not.toHaveBeenCalled();
-    expect(log).toHaveBeenCalledWith(
-      "Open this link in your browser:\nhttps://store.example/local-fixture",
-    );
+    const error: unknown = await messages[0]!
+      .send()
+      .catch((value: unknown) => value);
+    expect(error).toEqual(new Error("Email delivery failed."));
+    expect(error).not.toHaveProperty("cause");
   });
+
+  it("does not use the development placeholder fallback in production", async () => {
+    env.SMTP_HOST = "localhost";
+    await messages[0]!.send();
+    expect(sendMail).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["development", "test"])(
+    "preserves %s transport errors",
+    async (mode) => {
+      env.NODE_ENV = mode;
+      const failure = new Error("Local transport failure");
+      sendMail.mockRejectedValue(failure);
+      await expect(messages[0]!.send()).rejects.toBe(failure);
+    },
+  );
+
+  it.each(["development", "test"])(
+    "preserves explicit %s log delivery without transport",
+    async (mode) => {
+      env.NODE_ENV = mode;
+      env.EMAIL_DELIVERY_MODE = "log";
+      const log = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      await sendAuthEmail({
+        to: user.email,
+        subject: "Test",
+        text: "Open https://store.example/local-fixture",
+        html: "<p>Test</p>",
+      });
+      expect(nodemailer.createTransport).not.toHaveBeenCalled();
+      expect(log).toHaveBeenCalledWith(
+        "Open this link in your browser:\nhttps://store.example/local-fixture",
+      );
+    },
+  );
+
+  it.each(["development", "test"])(
+    "preserves %s placeholder logging",
+    async (mode) => {
+      env.NODE_ENV = mode;
+      env.SMTP_HOST = "localhost";
+      await messages[0]!.send();
+      expect(nodemailer.createTransport).not.toHaveBeenCalled();
+      expect(console.warn).toHaveBeenCalledWith(
+        `Open this link in your browser:\n${verificationUrl}`,
+      );
+    },
+  );
 });

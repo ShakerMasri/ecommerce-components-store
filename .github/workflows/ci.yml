@@ -62,6 +62,8 @@ jobs:
         # Placeholder build validation only; this does not verify live services.
         env:
           NODE_ENV: production
+          EMAIL_DELIVERY_MODE: smtp
+          SMTP_HOST: smtp.example.invalid
         run: npm run build
 
       - name: License audit

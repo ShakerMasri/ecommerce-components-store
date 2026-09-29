@@ -14,7 +14,7 @@ Status values: TODO, IN PROGRESS, CODE VERIFIED / INTEGRATION PENDING, BLOCKED, 
 |---|---|---|---|
 | R1 | Vulnerable dependencies and image optimizer | CODE VERIFIED / INTEGRATION PENDING | Nodemailer 10.0.12 approved and verified; 209 tests pass. Prisma advisory deferral recommended; actual catalog/services unverified. |
 | R2 | Rate-limit failures and trusted client IP | CODE VERIFIED / INTEGRATION PENDING | Failures reject sensitive requests; hosting/IP trust and staging checks pending |
-| R3 | Production email safety | TODO | Log delivery allowed in production |
+| R3 | Production email safety | CODE VERIFIED / INTEGRATION PENDING | Production log mode rejected; local checks pass; staging email/link flows pending |
 | R4 | Phone normalization and validation | TODO | Punctuation-only input accepted |
 | R5 | Admin inventory filtering/sorting | TODO | Uses legacy Product.stock |
 | R6 | Electronics/default product options | TODO | Design decision required |
@@ -103,6 +103,21 @@ Start: `src/env.js`, `src/server/email.ts`, auth configuration, `.env.example`, 
 Reject log-only email delivery in production and prevent password-reset/verification tokens from appearing in production logs. Keep local development logging explicit. Update examples and CI placeholder settings without sending real mail during builds or requiring production secrets. Preserve verification and reset behavior.
 
 Accept: production + log fails safely; development logging still works; production SMTP path does not log tokens; SMTP failure is handled safely. A production-mode build with validation enabled passes. On staging, actual verification and reset emails arrive, links use the staging origin, and verified users can checkout. Code may be merged before this last check only with the integration blocker retained.
+
+### R3 evidence — 2026-09-30
+
+Branch `fix/r3-production-email`, starting HEAD `5abd2980222c0943561f97e379659ecd45a72375`; started clean. Scoped edits remain uncommitted.
+
+- Environment validation rejects production `EMAIL_DELIVERY_MODE=log`, requires the existing SMTP fields, rejects blank host/user/sender name and invalid TCP ports, and cannot be bypassed by `SKIP_ENV_VALIDATION` in production. SMTP remains the default. Development/test explicit log mode and placeholder fallback remain supported.
+- Email delivery also guards against production log mode before any logging or transport creation. Production SMTP setup/send failures reject with a fixed error without provider details or a cause, preventing upstream loggers from exposing message content, links/tokens, or credentials. Templates, recipients, TLS selection, auth callbacks, and order-notification behavior are preserved.
+- `.env.example` documents local-only logging and production SMTP requirements. CI's production build overrides test log mode with SMTP and a reserved invalid placeholder host; builds do not send mail.
+- **PASS** focused regression: `npm.cmd run test:run -- src/env.test.ts src/server/email.test.ts` — **2 files / 41 tests**. Real environment validation plus reused R1 in-memory Nodemailer MIME/callback tests cover production log rejection (including skip flag), missing/invalid SMTP settings, default SMTP, development/test logging, production fallback exclusion, silent production success/failure paths, and sanitized transport failures. No live SMTP or database.
+- **PASS** `npm.cmd run check` — lint and TypeScript; `npm.cmd run test:run` — **35 files / 260 tests**; scoped `npx.cmd prettier --check src/env.js src/env.test.ts src/server/email.ts src/server/email.test.ts next.config.js`; `git diff --check`.
+- **PASS** `npm.cmd run build` with `NODE_ENV=production`, `EMAIL_DELIVERY_MODE=smtp`, validation enabled, and synthetic R3 build placeholders for SMTP/auth/database/Redis/Cloudinary — compiled and generated **32/32** pages. This is compilation evidence only, not service verification.
+- **BLOCKED** initial sandbox formatter/test invocation encountered Windows `EPERM` (writes/worker spawn); approved execution outside the sandbox completed the checks above.
+- **BLOCKED / INTEGRATION PENDING** actual staging SMTP delivery, verification/reset link origin and completion, and verified-user checkout require an identified nonproduction target and separate authorization. No external emails or live service checks were performed.
+
+Next: authorize nonproduction SMTP/link-flow acceptance when staging is available. R3 is **CODE VERIFIED / INTEGRATION PENDING**, not DONE. R1/R2 evidence and blockers remain unchanged. No commit, push, merge, deploy, or R4 work.
 
 ## R4 — Checkout phone
 
