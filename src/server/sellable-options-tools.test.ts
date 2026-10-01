@@ -55,10 +55,50 @@ describe("R6 disposable tooling safeguards", () => {
         },
       },
     );
+    expect(result.error).toBeUndefined();
     expect(result.status).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain(
       "An explicitly confirmed disposable R6 target is required.",
     );
+  });
+  it("loads the real backfill runtime and shared TypeScript logic without constructing a client", () => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "--eval",
+        `import { PrismaClient } from "@prisma/client";
+         import { planOptionBackfill, normalizeOptionKey } from "./scripts/neutral-options-runtime.mjs";
+         const plan = planOptionBackfill([{ id: "v", productId: "p", optionKey: null,
+           optionLabel: null, sizeLabel: "Ａ / عربي", colorLabel: null }]);
+         process.stdout.write(JSON.stringify({ clientType: typeof PrismaClient,
+           key: normalizeOptionKey("Ａ / عربي"), plan }));`,
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        env: {
+          NODE_ENV: "test",
+          PATH: process.env.PATH,
+          SystemRoot: process.env.SystemRoot,
+          TEMP: process.env.TEMP,
+          TMP: process.env.TMP,
+        },
+      },
+    );
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(JSON.parse(result.stdout)).toEqual({
+      clientType: "function",
+      key: "named:a / عربي",
+      plan: {
+        changes: [
+          { id: "v", optionLabel: "Ａ / عربي", optionKey: "named:a / عربي" },
+        ],
+        unresolved: [],
+      },
+    });
   });
 });

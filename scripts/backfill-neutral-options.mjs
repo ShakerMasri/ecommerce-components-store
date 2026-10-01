@@ -1,6 +1,7 @@
-// Node 24+ native TypeScript stripping; never loads .env or application DATABASE_URL.
+// Node 20+: shared TypeScript logic uses the existing jiti loader, not native stripping.
+// Never loads .env or application DATABASE_URL.
 import { PrismaClient, Prisma } from "@prisma/client";
-import { planOptionBackfill } from "../src/lib/sellable-options.ts";
+import { planOptionBackfill } from "./neutral-options-runtime.mjs";
 
 const url = process.env.R6_TEST_DATABASE_URL;
 if (!url || process.env.R6_TEST_DATABASE_DISPOSABLE !== "yes") {
