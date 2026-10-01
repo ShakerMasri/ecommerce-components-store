@@ -1,3 +1,4 @@
+import { isMappedOption } from "~/lib/sellable-options";
 import { NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { rateLimit } from "~/lib/rate-limit";
@@ -63,6 +64,8 @@ export async function GET(request: Request, { params }: ProductRouteProps) {
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
           select: {
             id: true,
+            optionLabel: true,
+            optionKey: true,
             sizeLabel: true,
             colorLabel: true,
             stock: true,
@@ -79,11 +82,14 @@ export async function GET(request: Request, { params }: ProductRouteProps) {
       );
     }
 
-    const activeVariantStock = product.variants.reduce(
+    const mappedVariants = product.variants.filter(isMappedOption);
+    const activeVariantStock = mappedVariants.reduce(
       (sum, variant) => sum + variant.stock,
       0,
     );
-    const hasVariants = product._count.variants > 0;
+    const hasVariants = product.variants.some(
+      (v) => isMappedOption(v) && v.optionKey !== "default",
+    );
 
     return NextResponse.json({
       product: {
@@ -101,8 +107,10 @@ export async function GET(request: Request, { params }: ProductRouteProps) {
         createdAt: product.createdAt,
         category: product.category,
         hasVariants,
-        variants: product.variants.map((variant) => ({
+        variants: product.variants.filter(isMappedOption).map((variant) => ({
           id: variant.id,
+          optionKey: variant.optionKey,
+          optionLabel: variant.optionLabel,
           sizeLabel: variant.sizeLabel,
           colorLabel: variant.colorLabel,
           stock: product.showStock ? variant.stock : null,

@@ -91,6 +91,8 @@ describe("GET /api/products/[slug]", () => {
     variants: [
       {
         id: "variant-1",
+        optionKey: "named:m / black",
+        optionLabel: "M / Black",
         sizeLabel: "M",
         colorLabel: "Black",
         stock: 5,
@@ -153,6 +155,8 @@ describe("GET /api/products/[slug]", () => {
       variants: [
         {
           id: "variant-1",
+          optionKey: "named:m / black",
+          optionLabel: "M / Black",
           sizeLabel: "M",
           colorLabel: "Black",
           stock: 5,

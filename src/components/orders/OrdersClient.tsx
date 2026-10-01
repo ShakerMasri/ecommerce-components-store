@@ -1,4 +1,5 @@
 "use client";
+import { historicalOptionLabel } from "~/lib/sellable-options";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -15,6 +16,7 @@ type OrderItem = {
   productSlugAtPurchase: string;
   productImagesAtPurchase: string[];
   productVariantId: string | null;
+  selectedOptionLabel?: string | null;
   selectedSizeLabel: string | null;
   selectedColorLabel: string | null;
 };
@@ -93,9 +95,7 @@ function formatFallbackLabel(value: string) {
 }
 
 function getVariantSnapshotLabel(item: OrderItem) {
-  return [item.selectedSizeLabel, item.selectedColorLabel]
-    .filter(Boolean)
-    .join(" / ");
+  return historicalOptionLabel(item);
 }
 
 export function OrdersClient() {

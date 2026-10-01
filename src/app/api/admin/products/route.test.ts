@@ -265,6 +265,15 @@ describe("admin product collection route", () => {
     expect(mocks.prisma.product.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          stock: 0,
+          variants: {
+            create: {
+              optionKey: "default",
+              optionLabel: null,
+              stock: 3,
+              isActive: true,
+            },
+          },
           discountPrice: 14.99,
           showStock: false,
         }),

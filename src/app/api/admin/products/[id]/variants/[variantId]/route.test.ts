@@ -5,7 +5,10 @@ const mocks = vi.hoisted(() => ({
   rateLimit: vi.fn(),
   validateSameOriginRequest: vi.fn(),
   prisma: {
+    $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
     productVariant: {
+      findMany: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
     },
@@ -75,8 +78,8 @@ function createVariant(overrides: Record<string, unknown> = {}) {
     productId,
     sizeLabel: "M",
     colorLabel: "Black",
-    sizeKey: "m",
-    colorKey: "black",
+    optionKey: "named:m / black",
+    optionLabel: "M / Black",
     stock: 5,
     isActive: true,
     sortOrder: 0,
@@ -98,38 +101,44 @@ describe("admin single product variant route", () => {
       },
     });
 
+    mocks.prisma.$transaction.mockImplementation(
+      async (run: (tx: typeof mocks.prisma) => Promise<unknown>) =>
+        run(mocks.prisma),
+    );
+    mocks.prisma.$queryRaw.mockResolvedValue([{ id: productId }]);
+    mocks.prisma.productVariant.findMany.mockResolvedValue([]);
     mocks.rateLimit.mockResolvedValue({ ok: true });
     mocks.validateSameOriginRequest.mockReturnValue(null);
     mocks.prisma.productVariant.findUnique.mockResolvedValue({
       id: variantId,
       productId,
-      sizeLabel: "M",
-      colorLabel: "Black",
+      optionKey: "named:m / black",
+      optionLabel: "M / Black",
     });
   });
 
   it("updates a variant owned by the route product", async () => {
     mocks.prisma.productVariant.update.mockResolvedValue(
-      createVariant({ stock: 9, colorLabel: "Navy", colorKey: "navy" }),
+      createVariant({ stock: 9, optionLabel: "Navy", optionKey: "named:navy" }),
     );
 
     const response = await PATCH(
-      createPatchRequest({ colorLabel: " Navy ", stock: "9" }),
+      createPatchRequest({ optionLabel: " Navy ", stock: "9" }),
       routeParams,
     );
     const body = (await response.json()) as {
-      variant: { colorLabel: string; stock: number };
+      variant: { optionLabel: string; stock: number };
     };
 
     expect(response.status).toBe(200);
-    expect(body.variant.colorLabel).toBe("Navy");
+    expect(body.variant.optionLabel).toBe("Navy");
     expect(body.variant.stock).toBe(9);
     expect(mocks.prisma.productVariant.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: variantId },
         data: expect.objectContaining({
-          colorLabel: "Navy",
-          colorKey: "navy",
+          optionLabel: "Navy",
+          optionKey: "named:navy",
           stock: 9,
         }),
       }),
@@ -140,12 +149,12 @@ describe("admin single product variant route", () => {
     mocks.prisma.productVariant.findUnique.mockResolvedValue({
       id: variantId,
       productId: "clh1q2w3e000208l4a5b6c7e0",
-      sizeLabel: "M",
-      colorLabel: "Black",
+      optionKey: "named:m / black",
+      optionLabel: "M / Black",
     });
 
     const response = await PATCH(
-      createPatchRequest({ colorLabel: "Navy", stock: "9" }),
+      createPatchRequest({ optionLabel: "Navy", stock: "9" }),
       routeParams,
     );
     const body = (await response.json()) as { message: string };

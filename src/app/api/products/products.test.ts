@@ -88,6 +88,8 @@ describe("GET /api/products", () => {
       isFeatured: true,
       variants: [
         {
+          optionKey: "named:pins",
+          optionLabel: "Pins",
           stock: 10,
         },
       ],
@@ -117,11 +119,7 @@ describe("GET /api/products", () => {
         },
         skip: 0,
         take: 13,
-        orderBy: [
-          { isFeatured: "desc" },
-          { createdAt: "desc" },
-          { id: "asc" },
-        ],
+        orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }, { id: "asc" }],
         select: expect.objectContaining({
           discountPrice: true,
           showStock: true,
@@ -170,7 +168,10 @@ describe("GET /api/products", () => {
       {
         ...products[0],
         showStock: true,
-        variants: [{ stock: 3 }, { stock: 4 }],
+        variants: [
+          { optionKey: "named:a", optionLabel: "A", stock: 3 },
+          { optionKey: "named:b", optionLabel: "B", stock: 4 },
+        ],
       },
     ]);
 
@@ -226,7 +227,9 @@ describe("GET /api/products", () => {
   });
 
   it("uses validated page and capped pageSize query parameters", async () => {
-    const response = await GET(createRequest("/api/products?page=3&pageSize=500"));
+    const response = await GET(
+      createRequest("/api/products?page=3&pageSize=500"),
+    );
     const body = (await response.json()) as ProductResponse;
 
     expect(response.status).toBe(200);

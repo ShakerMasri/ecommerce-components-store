@@ -1,3 +1,8 @@
+import {
+  lockOptionProduct,
+  prepareOptionMutation,
+  OptionMutationError,
+} from "~/server/sellable-option-mutation";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "~/lib/admin";
@@ -19,6 +24,8 @@ type ProductVariantsRouteProps = {
 const adminProductVariantSelect = {
   id: true,
   productId: true,
+  optionLabel: true,
+  optionKey: true,
   sizeLabel: true,
   colorLabel: true,
   sizeKey: true,
@@ -44,11 +51,14 @@ function serializeProductVariant(variant: AdminProductVariant) {
 
 function getUniqueVariantError(): Record<string, string[]> {
   return {
-    _form: ["This product already has a variant with the same size and color."],
+    _form: ["This product already has this option key."],
   };
 }
 
-export async function GET(_request: Request, { params }: ProductVariantsRouteProps) {
+export async function GET(
+  _request: Request,
+  { params }: ProductVariantsRouteProps,
+) {
   const admin = await requireAdmin();
 
   if (!admin.ok) {
@@ -82,6 +92,11 @@ export async function GET(_request: Request, { params }: ProductVariantsRoutePro
       variants: variants.map(serializeProductVariant),
     });
   } catch (error) {
+    if (error instanceof OptionMutationError)
+      return NextResponse.json(
+        { message: error.message, errors: { _form: [error.message] } },
+        { status: error.message === "Not found." ? 404 : 400 },
+      );
     const errorId = logError("Failed to load product variants.", error, {
       action: "admin.productVariants.list",
       route: "/api/admin/products/[id]/variants",
@@ -96,7 +111,10 @@ export async function GET(_request: Request, { params }: ProductVariantsRoutePro
   }
 }
 
-export async function POST(request: Request, { params }: ProductVariantsRouteProps) {
+export async function POST(
+  request: Request,
+  { params }: ProductVariantsRouteProps,
+) {
   const admin = await requireAdmin();
 
   if (!admin.ok) {
@@ -136,21 +154,17 @@ export async function POST(request: Request, { params }: ProductVariantsRoutePro
   }
 
   try {
-    const product = await prisma.product.findUnique({
-      where: { id: parsedParams.data.id },
-      select: { id: true },
-    });
-
-    if (!product) {
-      return NextResponse.json({ message: "Not found." }, { status: 404 });
-    }
-
-    const variant = await prisma.productVariant.create({
-      data: {
-        ...parsedBody.data,
-        productId: parsedParams.data.id,
-      },
-      select: adminProductVariantSelect,
+    const variant = await prisma.$transaction(async (tx) => {
+      await lockOptionProduct(tx, parsedParams.data.id);
+      const data = await prepareOptionMutation(
+        tx,
+        parsedParams.data.id,
+        parsedBody.data,
+      );
+      return tx.productVariant.create({
+        data: { ...data, productId: parsedParams.data.id },
+        select: adminProductVariantSelect,
+      });
     });
 
     return NextResponse.json(
@@ -161,6 +175,11 @@ export async function POST(request: Request, { params }: ProductVariantsRoutePro
       { status: 201 },
     );
   } catch (error) {
+    if (error instanceof OptionMutationError)
+      return NextResponse.json(
+        { message: error.message, errors: { _form: [error.message] } },
+        { status: error.message === "Not found." ? 404 : 400 },
+      );
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"

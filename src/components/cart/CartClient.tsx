@@ -36,6 +36,8 @@ type CartProduct = {
 
 type CartVariant = {
   id: string;
+  optionKey: string | null;
+  optionLabel: string | null;
   sizeLabel: string | null;
   colorLabel: string | null;
   stock: number | null;
@@ -76,6 +78,7 @@ type OrderItem = {
   productSlugAtPurchase: string;
   productImagesAtPurchase: string[];
   productVariantId: string | null;
+  selectedOptionLabel?: string | null;
   selectedSizeLabel: string | null;
   selectedColorLabel: string | null;
 };
@@ -143,11 +146,7 @@ function formatVariantLabel(variant: CartVariant | null) {
     return null;
   }
 
-  const label = [variant.sizeLabel, variant.colorLabel]
-    .filter(Boolean)
-    .join(" / ");
-
-  return label || null;
+  return variant.optionLabel ?? null;
 }
 
 export function CartClient() {

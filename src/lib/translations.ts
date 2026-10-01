@@ -611,8 +611,10 @@ export type TranslationDictionary = {
       optionsCountHelp: string;
       activeOptionStock: string;
       activeOptionStockHelp: string;
-      size: string;
-      color: string;
+      optionLabel: string;
+      defaultOption: string;
+      deactivateOtherOptions: string;
+      unresolvedOption: string;
       sortOrder: string;
       active: string;
       saveOption: string;
@@ -621,8 +623,7 @@ export type TranslationDictionary = {
       makingInactive: string;
       addOption: string;
       addingOption: string;
-      sizePlaceholder: string;
-      colorPlaceholder: string;
+      optionLabelPlaceholder: string;
       failedToCreateOption: string;
       optionCreated: string;
       failedToUpdateOption: string;
@@ -649,7 +650,8 @@ export type TranslationDictionary = {
       invalidDiscountPrice: string;
       invalidCategory: string;
       invalidImage: string;
-      invalidOptionSizeOrColor: string;
+      invalidOptionLabel: string;
+      invalidOptionState: string;
       invalidOptionStock: string;
       invalidOptionSortOrder: string;
       productPreview: string;
@@ -858,7 +860,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       selectOptionHelp:
         "Choose an available variant before adding this piece to your cart.",
       selectOptionRequired:
-        "Please choose an available size or color option before adding to cart.",
+        "Please choose an available option before adding to cart.",
       outOfStock: "Out of stock",
       descriptionTitle: "Description",
       noDescription: "No description available for this product yet.",
@@ -1379,19 +1381,23 @@ export const translations: Record<Language, TranslationDictionary> = {
           "Leave empty for no discount. Must be lower than the regular price.",
         stock: "Stock",
         stockHelp:
-          "Manage stock in Options after saving the product. Customers can order only active size/color options with stock.",
+          "Initial stock belongs to the default option. Manage stock in Options after saving. To offer named choices, deactivate the default first; stock is not transferred.",
         optionsTitle: "Options",
         optionsDescription:
-          "Manage sizes, colors, stock, and active status. Customers can order only active options with stock.",
+          "Manage labels, stock and activity. Deactivate the current option type before activating another. Stock and existing cart selections stay with each option.",
         optionCount: "{count} options",
         optionsCountLabel: "Options",
         optionsCountHelp:
-          "Each option represents a customer choice such as size, color, or both.",
+          "Each named option represents a genuine buyer choice. A default needs no buyer selection.",
         activeOptionStock: "Active option stock",
         activeOptionStockHelp:
           "This is the customer-facing stock total when exact stock visibility is enabled.",
-        size: "Size",
-        color: "Color",
+        optionLabel: "Option label",
+        defaultOption: "Default option (no buyer selection)",
+        deactivateOtherOptions:
+          "Deactivate the other displayed active options when saving (keep their stock)",
+        unresolvedOption:
+          "Unmapped legacy option: enter a verified label before purchase is enabled.",
         sortOrder: "Sort order",
         active: "Active",
         saveOption: "Save option",
@@ -1400,8 +1406,7 @@ export const translations: Record<Language, TranslationDictionary> = {
         makingInactive: "Saving...",
         addOption: "Add option",
         addingOption: "Adding...",
-        sizePlaceholder: "Size, e.g. M",
-        colorPlaceholder: "Color, e.g. Black",
+        optionLabelPlaceholder: "Buyer-selectable option label",
         failedToCreateOption: "Failed to create option.",
         optionCreated: "Option created successfully.",
         failedToUpdateOption: "Failed to update option.",
@@ -1433,8 +1438,11 @@ export const translations: Record<Language, TranslationDictionary> = {
           "Discount price must be lower than the regular price.",
         invalidCategory: "Select a category.",
         invalidImage: "Upload a valid JPG, PNG, or WEBP image up to 10MB.",
-        invalidOptionSizeOrColor: "Enter at least a size or color.",
+        invalidOptionLabel:
+          "Enter a label for a named option; a default has no label.",
         invalidOptionStock: "Enter a valid whole stock number.",
+        invalidOptionState:
+          "Use a unique option label. To change option type, explicitly deactivate the other active options when saving. Reload if the displayed options have changed.",
         invalidOptionSortOrder: "Enter a valid whole sort order.",
         productPreview: "Product preview",
         remove: "Remove",
@@ -1638,7 +1646,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       option: "خيار",
       selected: "محدد",
       selectOptionHelp: "اختار نوع قبل ما تضيف القطعة للسلة.",
-      selectOptionRequired: "اختار مقاس أو لون متوفر قبل ما تضيف القطعة للسلة.",
+      selectOptionRequired: "اختر خياراً متوفراً قبل إضافة القطعة للسلة.",
       outOfStock: "غير متوفر",
       descriptionTitle: "الوصف",
       noDescription: "ما في وصف لهاي القطعة حالياً.",
@@ -2153,19 +2161,23 @@ export const translations: Record<Language, TranslationDictionary> = {
           "اتركه فارغاً بدون خصم. يجب أن يكون أقل من السعر الأساسي.",
         stock: "المخزون",
         stockHelp:
-          "أدر المخزون من الخيارات بعد حفظ المنتج. يستطيع العميل طلب الخيارات النشطة التي تحتوي على مخزون فقط.",
+          "المخزون الأولي للخيار الافتراضي. لإتاحة خيارات مسماة، عطّل الافتراضي أولاً. لا يُنقل المخزون تلقائياً.",
         optionsTitle: "الخيارات",
         optionsDescription:
-          "أدر المقاسات والألوان والمخزون وحالة التفعيل. يستطيع العميل طلب الخيارات النشطة التي تحتوي على مخزون فقط.",
+          "إدارة أسماء الخيارات ومخزونها وحالتها. عطّل النوع الحالي قبل تفعيل الآخر؛ يبقى المخزون واختيار السلة مرتبطين بالخيار.",
         optionCount: "{count} خيار",
         optionsCountLabel: "الخيارات",
         optionsCountHelp:
-          "كل خيار يمثل اختياراً يظهر للعميل مثل المقاس أو اللون أو الاثنين معاً.",
+          "كل خيار مسمى يمثل اختياراً فعلياً للمشتري. الخيار الافتراضي لا يتطلب اختياراً.",
         activeOptionStock: "مخزون الخيارات النشطة",
         activeOptionStockHelp:
           "هذا هو مجموع المخزون الذي يظهر للعميل عند تفعيل إظهار رقم المخزون.",
-        size: "المقاس",
-        color: "اللون",
+        optionLabel: "اسم الخيار",
+        defaultOption: "الخيار الافتراضي (بدون اختيار للمشتري)",
+        deactivateOtherOptions:
+          "تعطيل الخيارات النشطة الأخرى المعروضة عند الحفظ (مع إبقاء مخزونها)",
+        unresolvedOption:
+          "خيار قديم غير معيّن: أدخل اسماً مؤكداً قبل إتاحة الشراء.",
         sortOrder: "ترتيب العرض",
         active: "نشط",
         saveOption: "حفظ الخيار",
@@ -2174,8 +2186,7 @@ export const translations: Record<Language, TranslationDictionary> = {
         makingInactive: "جار الحفظ...",
         addOption: "إضافة خيار",
         addingOption: "جار الإضافة...",
-        sizePlaceholder: "المقاس، مثال M",
-        colorPlaceholder: "اللون، مثال أسود",
+        optionLabelPlaceholder: "اسم الخيار الذي يختاره المشتري",
         failedToCreateOption: "فشل إنشاء الخيار.",
         optionCreated: "تم إنشاء الخيار بنجاح.",
         failedToUpdateOption: "فشل تحديث الخيار.",
@@ -2207,8 +2218,11 @@ export const translations: Record<Language, TranslationDictionary> = {
         invalidCategory: "اختر تصنيفاً.",
         invalidImage:
           "ارفع صورة JPG أو PNG أو WEBP صالحة بحجم لا يزيد عن 10MB.",
-        invalidOptionSizeOrColor: "أدخل المقاس أو اللون على الأقل.",
+        invalidOptionLabel:
+          "أدخل اسماً للخيار المسمى؛ الخيار الافتراضي بدون اسم.",
         invalidOptionStock: "أدخل رقم مخزون صحيحاً بدون كسور.",
+        invalidOptionState:
+          "استخدم اسماً فريداً للخيار. لتغيير نوع الخيارات، اختر تعطيل الخيارات النشطة الأخرى عند الحفظ. أعد التحميل إذا تغيّرت الخيارات المعروضة.",
         invalidOptionSortOrder: "أدخل رقم ترتيب صحيحاً بدون كسور.",
         productPreview: "معاينة المنتج",
         remove: "حذف",

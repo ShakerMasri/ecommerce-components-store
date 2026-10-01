@@ -1,3 +1,4 @@
+import { isMappedOption } from "~/lib/sellable-options";
 import { NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { auth } from "~/server/auth";
@@ -47,6 +48,8 @@ export async function GET() {
           select: {
             id: true,
             productId: true,
+            optionLabel: true,
+            optionKey: true,
             sizeLabel: true,
             colorLabel: true,
             stock: true,
@@ -74,6 +77,8 @@ export async function GET() {
               },
               select: {
                 id: true,
+                optionKey: true,
+                optionLabel: true,
                 stock: true,
               },
             },
@@ -90,20 +95,25 @@ export async function GET() {
     });
 
     const safeCartItems = cartItems.map((item) => {
-      const activeVariantStock = item.product.variants.reduce(
-        (sum, variant) => sum + variant.stock,
-        0,
+      const activeVariantStock = item.product.variants
+        .filter(isMappedOption)
+        .reduce((sum, variant) => sum + variant.stock, 0);
+      const hasVariants = item.product.variants.some(
+        (v) => isMappedOption(v) && v.optionKey !== "default",
       );
-      const hasVariants = item.product._count.variants > 0;
       const selectedVariant =
         item.productVariant?.isActive &&
+        isMappedOption(item.productVariant) &&
         item.productVariant.productId === item.product.id
           ? item.productVariant
           : null;
       const exactAvailableStock = selectedVariant?.stock ?? 0;
       const isAvailable =
-        !item.product.isArchived && Boolean(selectedVariant) && exactAvailableStock > 0;
-      const hasEnoughStock = isAvailable && item.quantity <= exactAvailableStock;
+        !item.product.isArchived &&
+        Boolean(selectedVariant) &&
+        exactAvailableStock > 0;
+      const hasEnoughStock =
+        isAvailable && item.quantity <= exactAvailableStock;
 
       return {
         id: item.id,
@@ -112,6 +122,8 @@ export async function GET() {
         productVariant: selectedVariant
           ? {
               id: selectedVariant.id,
+              optionLabel: selectedVariant.optionLabel,
+              optionKey: selectedVariant.optionKey,
               sizeLabel: selectedVariant.sizeLabel,
               colorLabel: selectedVariant.colorLabel,
               stock: item.product.showStock ? selectedVariant.stock : null,

@@ -1,3 +1,4 @@
+import { isMappedOption } from "~/lib/sellable-options";
 import { NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { rateLimit } from "~/lib/rate-limit";
@@ -151,6 +152,8 @@ export async function GET(request: Request) {
               isActive: true,
             },
             select: {
+              optionKey: true,
+              optionLabel: true,
               stock: true,
             },
           },
@@ -180,11 +183,12 @@ export async function GET(request: Request) {
     const hasMore = products.length > pageSize;
 
     const safeProducts = pageProducts.map((product) => {
-      const activeVariantStock = product.variants.reduce(
-        (sum, variant) => sum + variant.stock,
-        0,
+      const activeVariantStock = product.variants
+        .filter(isMappedOption)
+        .reduce((sum, variant) => sum + variant.stock, 0);
+      const hasVariants = product.variants.some(
+        (v) => isMappedOption(v) && v.optionKey !== "default",
       );
-      const hasVariants = product._count.variants > 0;
 
       return {
         id: product.id,

@@ -20,6 +20,8 @@ const productParamsSchema = z.object({
 const adminProductVariantSelect = {
   id: true,
   productId: true,
+  optionLabel: true,
+  optionKey: true,
   sizeLabel: true,
   colorLabel: true,
   sizeKey: true,

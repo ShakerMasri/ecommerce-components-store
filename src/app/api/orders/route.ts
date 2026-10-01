@@ -1,3 +1,4 @@
+import { isMappedOption } from "~/lib/sellable-options";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { env } from "~/env";
@@ -40,6 +41,7 @@ const orderSelect = {
       productSlugAtPurchase: true,
       productImagesAtPurchase: true,
       productVariantId: true,
+      selectedOptionLabel: true,
       selectedSizeLabel: true,
       selectedColorLabel: true,
     },
@@ -277,6 +279,8 @@ export async function POST(request: Request) {
             select: {
               id: true,
               productId: true,
+              optionLabel: true,
+              optionKey: true,
               sizeLabel: true,
               colorLabel: true,
               stock: true,
@@ -317,6 +321,7 @@ export async function POST(request: Request) {
 
         if (
           !item.productVariant?.isActive ||
+          !isMappedOption(item.productVariant) ||
           item.productVariant.productId !== item.product.id
         ) {
           throw new Error("VARIANT_NOT_AVAILABLE");
@@ -327,6 +332,8 @@ export async function POST(request: Request) {
             id: item.productVariant.id,
             productId: item.product.id,
             isActive: true,
+            optionKey: item.productVariant.optionKey,
+            optionLabel: item.productVariant.optionLabel,
             stock: {
               gte: item.quantity,
             },
@@ -384,6 +391,7 @@ export async function POST(request: Request) {
                 productNameAtPurchase: item.product.name,
                 productSlugAtPurchase: item.product.slug,
                 productImagesAtPurchase: item.product.images,
+                selectedOptionLabel: item.productVariant?.optionLabel ?? null,
                 selectedSizeLabel: item.productVariant?.sizeLabel ?? null,
                 selectedColorLabel: item.productVariant?.colorLabel ?? null,
               };
@@ -475,7 +483,7 @@ export async function POST(request: Request) {
 
     if (error instanceof Error && error.message === "VARIANT_REQUIRED") {
       return NextResponse.json(
-        { message: "One or more products need a selected size or color." },
+        { message: "One or more products need a selected option." },
         { status: 400 },
       );
     }
@@ -487,8 +495,7 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         {
-          message:
-            "One or more selected sizes or colors are no longer available.",
+          message: "One or more selected options are no longer available.",
         },
         { status: 400 },
       );

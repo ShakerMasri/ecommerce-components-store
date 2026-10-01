@@ -6,12 +6,15 @@ const mocks = vi.hoisted(() => ({
   rateLimit: vi.fn(),
   validateSameOriginRequest: vi.fn(),
   prisma: {
+    $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
     product: {
       findUnique: vi.fn(),
     },
     productVariant: {
       create: vi.fn(),
       findMany: vi.fn(),
+      updateMany: vi.fn(),
     },
   },
 }));
@@ -73,8 +76,8 @@ function createVariant(overrides: Record<string, unknown> = {}) {
     productId,
     sizeLabel: "M",
     colorLabel: "Black",
-    sizeKey: "m",
-    colorKey: "black",
+    optionKey: "named:m / black",
+    optionLabel: "M / Black",
     stock: 5,
     isActive: true,
     sortOrder: 0,
@@ -85,6 +88,47 @@ function createVariant(overrides: Record<string, unknown> = {}) {
 }
 
 describe("admin product variants collection route", () => {
+  it("deactivates explicitly selected owned options and creates the new choice within one transaction", async () => {
+    const oldId = "clh1q2w3e000208l4a5b6c7e0";
+    mocks.prisma.productVariant.findMany.mockResolvedValue([
+      { id: oldId, optionKey: "default", isActive: true },
+    ]);
+    mocks.prisma.productVariant.create.mockResolvedValue(
+      createVariant({ optionLabel: "Pins", optionKey: "named:pins" }),
+    );
+    const response = await POST(
+      createPostRequest({
+        optionLabel: "Pins",
+        stock: 3,
+        deactivateOptionIds: [oldId],
+      }),
+      routeParams,
+    );
+    expect(response.status).toBe(201);
+    expect(mocks.prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.prisma.productVariant.updateMany).toHaveBeenCalledWith({
+      where: { productId, id: { in: [oldId] } },
+      data: { isActive: false },
+    });
+    expect(
+      mocks.prisma.productVariant.updateMany.mock.invocationCallOrder[0]!,
+    ).toBeLessThan(
+      mocks.prisma.productVariant.create.mock.invocationCallOrder[0]!,
+    );
+  });
+  it("rejects foreign or stale transition IDs before writing inventory", async () => {
+    const response = await POST(
+      createPostRequest({
+        optionLabel: "Pins",
+        stock: 3,
+        deactivateOptionIds: ["clh1q2w3e000208l4a5b6c7e0"],
+      }),
+      routeParams,
+    );
+    expect(response.status).toBe(400);
+    expect(mocks.prisma.productVariant.updateMany).not.toHaveBeenCalled();
+    expect(mocks.prisma.productVariant.create).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -96,6 +140,12 @@ describe("admin product variants collection route", () => {
       },
     });
 
+    mocks.prisma.$transaction.mockImplementation(
+      async (run: (tx: typeof mocks.prisma) => Promise<unknown>) =>
+        run(mocks.prisma),
+    );
+    mocks.prisma.$queryRaw.mockResolvedValue([{ id: productId }]);
+    mocks.prisma.productVariant.findMany.mockResolvedValue([]);
     mocks.rateLimit.mockResolvedValue({ ok: true });
     mocks.validateSameOriginRequest.mockReturnValue(null);
     mocks.prisma.product.findUnique.mockResolvedValue({ id: productId });
@@ -125,8 +175,7 @@ describe("admin product variants collection route", () => {
 
     const response = await POST(
       createPostRequest({
-        sizeLabel: " Medium ",
-        colorLabel: " Black ",
+        optionLabel: " Medium / Black ",
         stock: "5",
         sortOrder: "0",
         isActive: true,
@@ -143,17 +192,15 @@ describe("admin product variants collection route", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           productId,
-          sizeLabel: "Medium",
-          colorLabel: "Black",
-          sizeKey: "medium",
-          colorKey: "black",
+          optionLabel: "Medium / Black",
+          optionKey: "named:medium / black",
           stock: 5,
         }),
       }),
     );
   });
 
-  it("rejects duplicate size/color combinations", async () => {
+  it("rejects duplicate option keys", async () => {
     mocks.prisma.productVariant.create.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError("duplicate", {
         code: "P2002",
@@ -164,16 +211,17 @@ describe("admin product variants collection route", () => {
 
     const response = await POST(
       createPostRequest({
-        sizeLabel: "M",
-        colorLabel: "Black",
+        optionLabel: "M / Black",
         stock: "5",
       }),
       routeParams,
     );
-    const body = (await response.json()) as { errors: Record<string, string[]> };
+    const body = (await response.json()) as {
+      errors: Record<string, string[]>;
+    };
 
     expect(response.status).toBe(400);
-    expect(body.errors._form?.[0]).toContain("same size and color");
+    expect(body.errors._form?.[0]).toContain("option key");
   });
 
   it("hides the route from non-admin users", async () => {

@@ -215,6 +215,8 @@ describe("customer order route", () => {
         productVariant: {
           id: "variant-1",
           productId: "product-1",
+          optionKey: "named:m / black",
+          optionLabel: "M / Black",
           sizeLabel: "M",
           colorLabel: "Black",
           stock: 5,
@@ -534,6 +536,8 @@ describe("customer order route", () => {
         id: "variant-1",
         productId: "product-1",
         isActive: true,
+        optionKey: "named:m / black",
+        optionLabel: "M / Black",
         stock: {
           gte: 2,
         },
@@ -592,6 +596,8 @@ describe("customer order route", () => {
         productVariant: {
           id: "variant-1",
           productId: "product-1",
+          optionKey: "named:m / black",
+          optionLabel: "M / Black",
           sizeLabel: "M",
           colorLabel: "Black",
           stock: 5,
@@ -619,6 +625,8 @@ describe("customer order route", () => {
         id: "variant-1",
         productId: "product-1",
         isActive: true,
+        optionKey: "named:m / black",
+        optionLabel: "M / Black",
         stock: {
           gte: 2,
         },
@@ -672,7 +680,7 @@ describe("customer order route", () => {
     const body = (await response.json()) as { message: string };
 
     expect(response.status).toBe(400);
-    expect(body.message).toContain("selected size or color");
+    expect(body.message).toContain("selected option");
     expect(mocks.tx.order.create).not.toHaveBeenCalled();
   });
 
@@ -686,6 +694,8 @@ describe("customer order route", () => {
         productVariant: {
           id: "variant-1",
           productId: "product-1",
+          optionKey: "named:m / black",
+          optionLabel: "M / Black",
           sizeLabel: "M",
           colorLabel: "Black",
           stock: 1,
@@ -778,4 +788,79 @@ describe("customer order route", () => {
     expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
     expect(mocks.tx.order.create).not.toHaveBeenCalled();
   });
+  it("purchases a default without artificial labels and retries without a second deduction", async () => {
+    const items = await mocks.tx.cartItem.findMany();
+    items[0].productVariant = {
+      ...items[0].productVariant,
+      optionKey: "default",
+      optionLabel: null,
+      sizeLabel: null,
+      colorLabel: null,
+    };
+    mocks.tx.cartItem.findMany.mockResolvedValue(items);
+    const first = await POST(createRequest(createOrderInput()));
+    expect(first.status).toBe(200);
+    expect(
+      mocks.tx.order.create.mock.calls[0]![0].data.items.create[0],
+    ).toMatchObject({
+      productVariantId: "variant-1",
+      selectedOptionLabel: null,
+      selectedSizeLabel: null,
+      selectedColorLabel: null,
+      priceAtPurchase: new Prisma.Decimal("40.00"),
+    });
+    mocks.tx.order.findUnique.mockResolvedValue(await mocks.tx.order.create());
+    mocks.tx.productVariant.updateMany.mockClear();
+    mocks.tx.order.create.mockClear();
+    expect((await POST(createRequest(createOrderInput()))).status).toBe(200);
+    expect(mocks.tx.productVariant.updateMany).not.toHaveBeenCalled();
+    expect(mocks.tx.order.create).not.toHaveBeenCalled();
+  });
+  it("snapshots a neutral label without trusting browser price or labels", async () => {
+    const items = await mocks.tx.cartItem.findMany();
+    items[0].productVariant = {
+      ...items[0].productVariant,
+      optionKey: "named:straight pins",
+      optionLabel: "Straight pins",
+    };
+    mocks.tx.cartItem.findMany.mockResolvedValue(items);
+    expect(
+      (
+        await POST(
+          createRequest({
+            ...createOrderInput(),
+            price: 0,
+            optionLabel: "Fake",
+          }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(mocks.tx.order.create).not.toHaveBeenCalled();
+    expect((await POST(createRequest(createOrderInput()))).status).toBe(200);
+    expect(
+      mocks.tx.order.create.mock.calls[0]![0].data.items.create[0],
+    ).toMatchObject({
+      selectedOptionLabel: "Straight pins",
+      productNameAtPurchase: items[0].product.name,
+      priceAtPurchase: new Prisma.Decimal("40.00"),
+    });
+  });
+  it.each(["unmapped", "inactive", "foreign", "deleted"])(
+    "rejects %s cart options before stock writes",
+    async (kind) => {
+      const items = await mocks.tx.cartItem.findMany();
+      const option = { ...items[0].productVariant };
+      if (kind === "unmapped") {
+        option.optionKey = null;
+        option.optionLabel = null;
+      }
+      if (kind === "inactive") option.isActive = false;
+      if (kind === "foreign") option.productId = "other";
+      items[0].productVariant = kind === "deleted" ? null : option;
+      mocks.tx.cartItem.findMany.mockResolvedValue(items);
+      expect((await POST(createRequest(createOrderInput()))).status).toBe(400);
+      expect(mocks.tx.productVariant.updateMany).not.toHaveBeenCalled();
+      expect(mocks.tx.order.create).not.toHaveBeenCalled();
+    },
+  );
 });

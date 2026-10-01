@@ -130,7 +130,7 @@ model Product {
   description String?
   price         Decimal  @db.Decimal(10, 2) // original/current regular price
   discountPrice Decimal? @db.Decimal(10, 2) // optional customer-facing sale price
-  stock         Int      @default(0) // units available right now
+  stock         Int      @default(0) // legacy variantless inventory ledger; new stock belongs to ProductVariant
   images      String[] // array of Cloudinary URLs
   isArchived  Boolean  @default(false) // hide without deleting
   isFeatured  Boolean  @default(false)
@@ -152,14 +152,16 @@ model Product {
 
 
 // ─── Product Variant ─────────────────────────────────────────────────────────
-// Clothing variant inventory.
-// Active variants are the sellable stock source for clothing products.
+// Sellable inventory identity. Legacy clothing fields are retained for compatibility.
 
 model ProductVariant {
   id String @id @default(cuid())
 
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  optionLabel String? @db.VarChar(160)
+  optionKey   String? @db.VarChar(200) // null = unresolved legacy inventory
 
   sizeLabel  String? @db.VarChar(40)
   colorLabel String? @db.VarChar(80)
@@ -179,7 +181,7 @@ model ProductVariant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([productId, sizeKey, colorKey])
+  @@unique([productId, optionKey])
   @@index([productId])
   @@index([isActive])
   @@index([sortOrder])
@@ -248,6 +250,7 @@ model OrderItem {
   productVariantId String?
   productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: SetNull)
 
+  selectedOptionLabel String? @db.VarChar(160)
   selectedSizeLabel  String? @db.VarChar(40)
   selectedColorLabel String? @db.VarChar(80)
 
@@ -275,8 +278,8 @@ model CartItem {
   productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: SetNull)
 
   // Stable cart uniqueness key.
-  // simple products:  product:<productId>
-  // variant products: variant:<productVariantId>
+  // legacy variantless carts: product:<productId>
+  // all new sellable options: variant:<productVariantId>
   cartLineKey String
 
   createdAt DateTime @default(now())
