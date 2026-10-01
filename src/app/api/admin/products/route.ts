@@ -7,6 +7,7 @@ import { createProductSchema } from "~/lib/validations";
 import { rateLimit } from "~/lib/rate-limit";
 import { validateSameOriginRequest } from "~/lib/csrf";
 import { adminProductsQuerySchema } from "~/server/validations/product";
+import { getAdminInventoryPage } from "~/server/admin-product-inventory";
 
 const adminProductVariantSelect = {
   id: true,
@@ -76,81 +77,6 @@ function serializeProduct(product: AdminProduct) {
   };
 }
 
-function getProductOrderBy(
-  sort:
-    | "newest"
-    | "oldest"
-    | "name_asc"
-    | "name_desc"
-    | "price_asc"
-    | "price_desc"
-    | "stock_asc"
-    | "stock_desc",
-): Prisma.ProductOrderByWithRelationInput {
-  switch (sort) {
-    case "oldest":
-      return { createdAt: "asc" };
-    case "name_asc":
-      return { name: "asc" };
-    case "name_desc":
-      return { name: "desc" };
-    case "price_asc":
-      return { price: "asc" };
-    case "price_desc":
-      return { price: "desc" };
-    case "stock_asc":
-      return { stock: "asc" };
-    case "stock_desc":
-      return { stock: "desc" };
-    case "newest":
-    default:
-      return { createdAt: "desc" };
-  }
-}
-
-function buildProductWhere(filters: {
-  q?: string;
-  categoryId?: string;
-  status: "all" | "active" | "archived";
-  stock: "all" | "in_stock" | "out_of_stock" | "low_stock";
-}) {
-  const where: Prisma.ProductWhereInput = {};
-
-  if (filters.q) {
-    where.OR = [
-      { name: { contains: filters.q, mode: "insensitive" } },
-      { slug: { contains: filters.q, mode: "insensitive" } },
-      { description: { contains: filters.q, mode: "insensitive" } },
-    ];
-  }
-
-  if (filters.categoryId) {
-    where.categoryId = filters.categoryId;
-  }
-
-  if (filters.status === "active") {
-    where.isArchived = false;
-  }
-
-  if (filters.status === "archived") {
-    where.isArchived = true;
-  }
-
-  if (filters.stock === "in_stock") {
-    where.stock = { gt: 0 };
-  }
-
-  if (filters.stock === "out_of_stock") {
-    where.stock = 0;
-  }
-
-  if (filters.stock === "low_stock") {
-    where.stock = { gt: 0, lte: 5 };
-  }
-
-  return where;
-}
-
 export async function GET(request: Request) {
   const admin = await requireAdmin();
 
@@ -174,23 +100,33 @@ export async function GET(request: Request) {
   }
 
   const filters = parsedQuery.data;
-  const where = buildProductWhere(filters);
-  const skip = (filters.page - 1) * filters.limit;
 
   try {
-    const [total, products, activeProducts, archivedProducts] =
-      await prisma.$transaction([
-        prisma.product.count({ where }),
-        prisma.product.findMany({
-          where,
-          orderBy: getProductOrderBy(filters.sort),
-          skip,
-          take: filters.limit,
-          select: adminProductSelect,
-        }),
-        prisma.product.count({ where: { isArchived: false } }),
-        prisma.product.count({ where: { isArchived: true } }),
-      ]);
+    const { total, products, activeProducts, archivedProducts } =
+      await prisma.$transaction(
+        async (tx) => {
+          const { total, ids } = await getAdminInventoryPage(tx, filters);
+          const hydrated = ids.length
+            ? await tx.product.findMany({
+                where: { id: { in: ids } },
+                select: adminProductSelect,
+              })
+            : [];
+          const byId = new Map(
+            hydrated.map((product) => [product.id, product]),
+          );
+          // An IN query has no ordering guarantee. Use the aggregate page's order.
+          const products = ids.map((id) => byId.get(id)!);
+          const activeProducts = await tx.product.count({
+            where: { isArchived: false },
+          });
+          const archivedProducts = await tx.product.count({
+            where: { isArchived: true },
+          });
+          return { total, products, activeProducts, archivedProducts };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+      );
 
     const totalPages = Math.max(1, Math.ceil(total / filters.limit));
 

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   validateSameOriginRequest: vi.fn(),
   prisma: {
     $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
     category: {
       findUnique: vi.fn(),
     },
@@ -55,7 +56,13 @@ function createPostRequest(body: unknown) {
 
 describe("admin product collection route", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    mocks.prisma.$transaction.mockImplementation(async (callback) =>
+      callback(mocks.prisma),
+    );
+    mocks.prisma.$queryRaw
+      .mockResolvedValueOnce([{ total: 1n }])
+      .mockResolvedValueOnce([{ id: "product-1" }]);
 
     mocks.requireAdmin.mockResolvedValue({
       ok: true,
@@ -74,7 +81,6 @@ describe("admin product collection route", () => {
 
   it("loads filtered products for admins", async () => {
     mocks.prisma.product.count
-      .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(4)
       .mockResolvedValueOnce(2);
     mocks.prisma.product.findMany.mockResolvedValue([
@@ -100,9 +106,6 @@ describe("admin product collection route", () => {
         variants: [],
       },
     ]);
-    mocks.prisma.$transaction.mockImplementation(async (operations) =>
-      Promise.all(operations),
-    );
 
     const response = await GET(
       createGetRequest(
@@ -126,19 +129,79 @@ describe("admin product collection route", () => {
     expect(body.pagination.total).toBe(1);
     expect(body.summary.activeProducts).toBe(4);
     expect(body.summary.archivedProducts).toBe(2);
+    expect(mocks.prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      },
+    );
     expect(mocks.prisma.product.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        skip: 0,
-        take: 10,
-        orderBy: { stock: "asc" },
-        where: expect.objectContaining({
-          categoryId,
-          isArchived: false,
-          stock: { gt: 0, lte: 5 },
-        }),
+        where: { id: { in: ["product-1"] } },
       }),
     );
   });
+
+  it("preserves aggregate ordering when hydration returns rows in reverse order", async () => {
+    mocks.prisma.$queryRaw
+      .mockReset()
+      .mockResolvedValueOnce([{ total: 3n }])
+      .mockResolvedValueOnce([{ id: "a" }, { id: "b" }]);
+    const product = (id: string) => ({
+      id,
+      stock: 999,
+      price: new Prisma.Decimal(10),
+      discountPrice: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      variants: [],
+    });
+    mocks.prisma.product.findMany.mockResolvedValue([
+      product("b"),
+      product("a"),
+    ]);
+    mocks.prisma.product.count.mockResolvedValue(3);
+    const response = await GET(createGetRequest("?sort=stock_desc&limit=2"));
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.products.map((p: { id: string }) => p.id)).toEqual(["a", "b"]);
+    expect(body.products[0].stock).toBe(999); // Preserve response shape/legacy field.
+    expect(body.pagination).toEqual({
+      page: 1,
+      limit: 2,
+      total: 3,
+      totalPages: 2,
+    });
+    expect(mocks.prisma.product.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: ["a", "b"] } },
+      }),
+    );
+  });
+
+  it.each([0n, 5n])(
+    "retains filtered count %s for an empty page without hydrating",
+    async (total) => {
+      mocks.prisma.$queryRaw
+        .mockReset()
+        .mockResolvedValueOnce([{ total }])
+        .mockResolvedValueOnce([]);
+      mocks.prisma.product.count.mockResolvedValue(10);
+      const response = await GET(
+        createGetRequest("?page=4&limit=2&stock=low_stock"),
+      );
+      const body = await response.json();
+      expect(response.status).toBe(200);
+      expect(body.products).toEqual([]);
+      expect(body.pagination).toEqual({
+        page: 4,
+        limit: 2,
+        total: Number(total),
+        totalPages: Math.max(1, Math.ceil(Number(total) / 2)),
+      });
+      expect(mocks.prisma.product.findMany).not.toHaveBeenCalled();
+    },
+  );
 
   it("rejects invalid product filters", async () => {
     const response = await GET(createGetRequest("?status=deleted&limit=500"));

@@ -16,7 +16,7 @@ Status values: TODO, IN PROGRESS, CODE VERIFIED / INTEGRATION PENDING, BLOCKED, 
 | R2 | Rate-limit failures and trusted client IP | CODE VERIFIED / INTEGRATION PENDING | Failures reject sensitive requests; hosting/IP trust and staging checks pending |
 | R3 | Production email safety | CODE VERIFIED / INTEGRATION PENDING | Production log mode rejected; local checks pass; staging email/link flows pending |
 | R4 | Phone normalization and validation | BLOCKED | Review fixes tested; independent +970 allocation evidence and live checkout pending |
-| R5 | Admin inventory filtering/sorting | TODO | Uses legacy Product.stock |
+| R5 | Admin inventory filtering/sorting | CODE VERIFIED / INTEGRATION PENDING | Active-variant aggregate query; disposable PostgreSQL acceptance pending |
 | R6 | Electronics/default product options | TODO | Design decision required |
 | R7 | Real store configuration/content | TODO | Owner input required |
 | R8 | Full staging release validation | TODO | Real commerce/integrations unverified |
@@ -151,6 +151,21 @@ Start: admin product API/filter queries and UI; public availability and variant 
 Use the same sum of active variant stock for admin in-stock/out-of-stock/low-stock filtering and stock ordering that the storefront uses. Preserve current low-stock threshold unless a change is requested. Filter and sort globally before pagination; aggregating only the displayed page is incorrect. Avoid loading the entire catalog. Do not introduce a stale duplicated stock total to hide the mismatch.
 
 Accept: positive, zero, inactive-only, and mixed variants; deliberately conflicting legacy Product.stock; low-stock boundaries; ascending/descending ordering and stable multi-page results. Include a database-backed query test using a confirmed disposable target. No migration unless separately proposed and approved.
+
+### R5 implementation evidence - 2026-10-01
+
+- Admin list filters, stock ordering and filtered counts now use database sums of active variant stock (zero for no/inactive-only variants). Low stock remains 1-5 inclusive. Filtering/ordering precede pagination; only page IDs are hydrated and reordered to match the aggregate query, with `id ASC` breaking ties. Count, page, hydration and unchanged global archive summaries share a repeatable-read transaction.
+- No schema, migration, cached stock field, UI, storefront or response-shape changes. Legacy `Product.stock` remains in payloads for compatibility, but does not control list filters/order/counts.
+- **PASS:** `npm.cmd run test:run -- src/server/admin-product-inventory.test.ts src/server/admin-product-inventory.integration.test.ts src/app/api/admin/products/route.test.ts src/server/validations/product.test.ts`: **27 passed, 7 skipped** (three passing files; one gated PostgreSQL file). Initial sandbox startup failed with `spawn EPERM`; approved elevated retry passed. Mocked tests cover hydration order, empty/out-of-range page counts, isolation and SQL parameter/order contracts.
+- **PASS:** `npx.cmd tsc --noEmit --incremental false`; scoped ESLint and Prettier checks on the five affected TypeScript files; `git diff --check`.
+- **BLOCKED / INTEGRATION PENDING:** seven database-backed cases cover conflicting legacy stock, active/inactive/no variants, 0/1/5/6 boundaries, ascending/descending pagination with ties, combined filters and counts. No disposable PostgreSQL target was confirmed, so no live database/browser verification is claimed. Tests require an existing schema at confirmed `R5_TEST_DATABASE_URL` plus `R5_TEST_DATABASE_DISPOSABLE=yes`; fixtures roll back, with no application database fallback or migrations.
+- Only affected tests were run, per request. Next: execute database cases on a confirmed disposable target, affected admin browser acceptance and pre-merge checks. No commit, push, merge or deploy.
+
+### R5 independent review - 2026-10-01
+
+- **PASS (code review):** verified repository, branch `fix/r5-admin-inventory`, HEAD `e600fd7e6bfb468bd911466f0ad2e975a1aba847`, and the seven R5 working-tree files. No code findings. Active-variant sums consistently govern filtering, stock ordering and filtered counts before pagination; page hydration restores query order with `id ASC` ties within repeatable read. Storefront, response serialization, UI, schema and migrations are unchanged.
+- **PASS (reported checks reused):** the focused 27 passing tests, TypeScript and scoped lint/format checks above were not rerun. Test design adequately covers the intended cases, including conflicting legacy stock, zero/mixed/inactive variants, boundaries, ties, combined filters, hydration and empty pages; seven PostgreSQL cases remain skipped, not live evidence.
+- **BLOCKED / INTEGRATION PENDING:** run the gated PostgreSQL cases on a confirmed disposable target and affected admin browser acceptance. Before merge, run `npm.cmd run check`, `npm.cmd run test:run`, and `git diff --check`. R5 remains CODE VERIFIED / INTEGRATION PENDING; no code changes, commit, push, merge or deployment during review.
 
 ## R6 — Electronics options: design first
 
