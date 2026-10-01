@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PHONE_INPUT_MAX_LENGTH, phoneSchema } from "~/lib/phone";
 import { useRef, useState } from "react";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
 import { authClient } from "~/lib/auth-client";
@@ -35,7 +36,6 @@ const accentLinkClassName =
   "font-semibold text-[var(--accent-strong)] transition hover:text-[var(--accent)]";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const phonePattern = /^\+?[0-9\s\-()]{8,20}$/;
 
 function buildInputClassName(hasError: boolean) {
   return hasError
@@ -118,7 +118,6 @@ export function RegisterForm({ googleSignInEnabled }: RegisterFormProps) {
     const nextFieldErrors: RegisterFieldErrors = {};
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
-    const trimmedPhone = phone.trim();
 
     if (trimmedName.length < 2 || trimmedName.length > 50) {
       nextFieldErrors.name = t.auth.nameInvalid;
@@ -128,7 +127,7 @@ export function RegisterForm({ googleSignInEnabled }: RegisterFormProps) {
       nextFieldErrors.email = t.auth.emailInvalid;
     }
 
-    if (!phonePattern.test(trimmedPhone)) {
+    if (!phoneSchema.safeParse(phone).success) {
       nextFieldErrors.phone = t.auth.phoneInvalid;
     }
 
@@ -346,7 +345,7 @@ export function RegisterForm({ googleSignInEnabled }: RegisterFormProps) {
               }}
               required
               minLength={8}
-              maxLength={20}
+              maxLength={PHONE_INPUT_MAX_LENGTH}
               pattern="^\\+?[0-9\\s\\-()]{8,20}$"
               className={buildInputClassName(Boolean(fieldErrors.phone))}
               placeholder="+970599000000"

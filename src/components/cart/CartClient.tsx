@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { updateProfileSchema } from "~/lib/validations";
+import { PHONE_INPUT_MAX_LENGTH } from "~/lib/phone";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OptimizedImage } from "~/components/ui/OptimizedImage";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
@@ -954,6 +955,7 @@ export function CartClient() {
               {t.auth.phone}
               <input
                 type="tel"
+                maxLength={PHONE_INPUT_MAX_LENGTH}
                 autoComplete="tel"
                 dir="ltr"
                 value={phone}
@@ -1353,7 +1355,7 @@ export function CartClient() {
                     {t.cart.customerPhone}
                   </dt>
                   <dd className="text-end font-semibold text-[var(--ink)]">
-                    {phone.trim() || "—"}
+                    <bdi dir="ltr">{phone.trim() || "—"}</bdi>
                   </dd>
                 </div>
               </dl>

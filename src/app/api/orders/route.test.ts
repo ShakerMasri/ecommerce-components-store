@@ -408,19 +408,38 @@ describe("customer order route", () => {
     expect(mocks.prisma.order.findMany).not.toHaveBeenCalled();
   });
 
-  it.each([undefined, "", "   ", "invalid"])(
-    "rejects invalid phone %s with a field error",
-    async (phone) => {
-      const response = await POST(
-        createRequest({ ...createOrderInput(), phone }),
-      );
-      const body = (await response.json()) as { errors: { phone: string[] } };
+  it.each([
+    undefined,
+    "",
+    "   ",
+    "invalid",
+    "----------",
+    "\\----------",
+    "1---------",
+    "+---------",
+    "++970599000000",
+    "059900000",
+    "+970502345678",
+    "+971502345678",
+    "0554461234",
+    "0599/000000",
+    "00970 (59) 912 - 3456".padEnd(41, " "),
+  ])("rejects invalid phone %s with a field error", async (phone) => {
+    const response = await POST(
+      createRequest({ ...createOrderInput(), phone }),
+    );
+    const body = (await response.json()) as { errors: { phone: string[] } };
 
-      expect(response.status).toBe(400);
-      expect(body.errors.phone.length).toBeGreaterThan(0);
-      expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
-    },
-  );
+    expect(response.status).toBe(400);
+    expect(body.errors.phone.length).toBeGreaterThan(0);
+    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+    expect(mocks.tx.order.create).not.toHaveBeenCalled();
+    expect(mocks.tx.product.updateMany).not.toHaveBeenCalled();
+    expect(mocks.tx.productVariant.updateMany).not.toHaveBeenCalled();
+    expect(mocks.tx.cartItem.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.tx.user.update).not.toHaveBeenCalled();
+    expect(mocks.sendOrderNotificationEmail).not.toHaveBeenCalled();
+  });
 
   it.each([null, "+970599111111"])(
     "saves the submitted phone after creating an order when the saved phone is %s",
@@ -455,6 +474,32 @@ describe("customer order route", () => {
       expect(mocks.tx.order.create.mock.invocationCallOrder[0]).toBeLessThan(
         mocks.tx.user.update.mock.invocationCallOrder[0]!,
       );
+    },
+  );
+
+  it.each([
+    ["(059) 922-2222", "0599222222"],
+    ["00970 (56) 812-3456", "+970568123456"],
+    ["00970 (59) 912 - 3456", "+970599123456"],
+    ["00972 (51) 612-3456", "+972516123456"],
+  ])(
+    "snapshots and saves normalized phone %s in the transaction",
+    async (input, normalized) => {
+      const response = await POST(
+        createRequest({ ...createOrderInput(), phone: input }),
+      );
+      expect(response.status).toBe(200);
+      expect(mocks.tx.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            customerPhoneAtPurchase: normalized,
+          }),
+        }),
+      );
+      expect(mocks.tx.user.update).toHaveBeenCalledWith({
+        where: { id: "user-1" },
+        data: { phone: normalized },
+      });
     },
   );
 

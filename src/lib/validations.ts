@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { phoneSchema } from "./phone";
 
 const slugSchema = z
   .string()
@@ -78,17 +79,6 @@ const productImageUrlSchema = z
     isCloudinaryImageUrl,
     "Image must be an uploaded Cloudinary image URL",
   );
-
-const phoneSchema = z
-  .string()
-  .trim()
-  .min(10, "Phone number must be at least 10 characters")
-  .max(19, "Phone number must be less than 20 characters")
-  .regex(
-    /^\+?[0-9\s\-()]+$/,
-    "Phone number can only contain numbers, spaces, dashes, parentheses, and an optional +",
-  )
-  .transform((value) => value.replace(/[\s\-()]/g, ""));
 
 export const registerSchema = z.object({
   name: z

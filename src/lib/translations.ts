@@ -1048,7 +1048,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       nameInvalid: "Enter your name using 2 to 50 characters.",
       emailInvalid: "Enter a valid email address.",
       phoneInvalid:
-        "Enter a valid phone number using digits, spaces, dashes, parentheses, and an optional + at the start.",
+        "Enter a mobile number: 10 digits starting with 05, or +970/+972 (also 00970/00972) without the local 0.",
       passwordRequired: "Enter your password.",
       passwordTooShort: "Password must be at least 8 characters.",
       fixHighlightedFields: "Please fix the highlighted fields.",
@@ -1172,7 +1172,7 @@ export const translations: Record<Language, TranslationDictionary> = {
         "Phone numbers are required before checkout. They are not verified by SMS yet.",
       nameInvalid: "Enter your name using 2 to 50 characters.",
       phoneInvalid:
-        "Enter a valid phone number using digits, spaces, dashes, parentheses, and an optional + at the start.",
+        "Enter a mobile number: 10 digits starting with 05, or +970/+972 (also 00970/00972) without the local 0.",
       fixHighlightedFields: "Please fix the highlighted fields.",
       saveProfile: "Save profile",
       saving: "Saving...",
@@ -1824,7 +1824,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       nameInvalid: "أدخل الاسم من 2 إلى 50 حرفاً.",
       emailInvalid: "أدخل بريداً إلكترونياً صحيحاً.",
       phoneInvalid:
-        "أدخل رقم هاتف صحيحاً باستخدام الأرقام والمسافات والشرطات والأقواس، ويمكن استخدام + في البداية فقط.",
+        "أدخل رقم هاتف: 10 أرقام تبدأ بـ 05، أو بصيغة +970 أو +972 (أو 00970 أو 00972) دون الصفر المحلي.",
       passwordRequired: "أدخل كلمة المرور.",
       passwordTooShort: "يجب أن تكون كلمة المرور 8 أحرف على الأقل.",
       fixHighlightedFields: "يرجى تصحيح الحقول المحددة.",
@@ -1947,7 +1947,7 @@ export const translations: Record<Language, TranslationDictionary> = {
         "رقم الهاتف مطلوب قبل إتمام الطلب. لم يتم تفعيله عبر SMS حالياً.",
       nameInvalid: "أدخل الاسم من 2 إلى 50 حرفاً.",
       phoneInvalid:
-        "أدخل رقم هاتف صحيحاً باستخدام الأرقام والمسافات والشرطات والأقواس، ويمكن استخدام + في البداية فقط.",
+        "أدخل رقم هاتف: 10 أرقام تبدأ بـ 05، أو بصيغة +970 أو +972 (أو 00970 أو 00972) دون الصفر المحلي.",
       fixHighlightedFields: "يرجى تصحيح الحقول المحددة.",
       saveProfile: "حفظ الملف الشخصي",
       saving: "جاري الحفظ...",

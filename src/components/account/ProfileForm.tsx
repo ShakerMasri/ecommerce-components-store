@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PHONE_INPUT_MAX_LENGTH, phoneSchema } from "~/lib/phone";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
@@ -29,8 +30,6 @@ type ProfileResponse = {
   };
 };
 
-const phonePattern = /^\+?[0-9\s\-()]{8,20}$/;
-
 export function ProfileForm({ user }: ProfileFormProps) {
   const router = useRouter();
   const { t } = useAppPreferences();
@@ -46,13 +45,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
   function validateForm() {
     const nextFieldErrors: ProfileFieldErrors = {};
     const trimmedName = name.trim();
-    const trimmedPhone = phone.trim();
 
     if (trimmedName.length < 2 || trimmedName.length > 50) {
       nextFieldErrors.name = t.profile.nameInvalid;
     }
 
-    if (!phonePattern.test(trimmedPhone)) {
+    if (!phoneSchema.safeParse(phone).success) {
       nextFieldErrors.phone = t.profile.phoneInvalid;
     }
 
@@ -91,9 +89,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
       if (!response.ok) {
         const nextFieldErrors: ProfileFieldErrors = {
-          name: data.errors?.name?.length
-            ? t.profile.nameInvalid
-            : undefined,
+          name: data.errors?.name?.length ? t.profile.nameInvalid : undefined,
           phone: data.errors?.phone?.length
             ? t.profile.phoneInvalid
             : undefined,
@@ -219,7 +215,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
               }}
               required
               minLength={8}
-              maxLength={20}
+              maxLength={PHONE_INPUT_MAX_LENGTH}
               pattern="^\\+?[0-9\\s\\-()]{8,20}$"
               className={`mt-2 w-full rounded-2xl border bg-white px-4 py-3 text-sm text-zinc-950 transition outline-none placeholder:text-zinc-400 focus:ring-4 dark:bg-zinc-950 dark:text-white ${
                 fieldErrors.phone

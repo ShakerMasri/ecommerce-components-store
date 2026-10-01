@@ -12,7 +12,7 @@ describe("registerSchema", () => {
     const result = registerSchema.safeParse({
       name: "Test User",
       email: "TEST@EXAMPLE.COM",
-      phone: "+972 59-123-4567",
+      phone: "+972 59-923-4567",
       password: "password123",
     });
 
@@ -20,7 +20,7 @@ describe("registerSchema", () => {
 
     if (result.success) {
       expect(result.data.email).toBe("test@example.com");
-      expect(result.data.phone).toBe("+972591234567");
+      expect(result.data.phone).toBe("+972599234567");
     }
   });
 
@@ -86,13 +86,13 @@ describe("updateProfileSchema", () => {
   it("accepts valid profile input and normalizes phone", () => {
     const result = updateProfileSchema.safeParse({
       name: "Customer Name",
-      phone: "+972 59-123-4567",
+      phone: "+972 59-923-4567",
     });
 
     expect(result.success).toBe(true);
 
     if (result.success) {
-      expect(result.data.phone).toBe("+972591234567");
+      expect(result.data.phone).toBe("+972599234567");
     }
   });
 
