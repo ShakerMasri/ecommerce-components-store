@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   csrf: vi.fn(),
   rateLimit: vi.fn(),
   prisma: {
+    $executeRaw: vi.fn(),
     $transaction: vi.fn(),
     user: { findUnique: vi.fn() },
     product: { findUnique: vi.fn() },
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
+      deleteMany: vi.fn(),
       findUniqueOrThrow: vi.fn(),
     },
   },
@@ -25,7 +27,7 @@ vi.mock("~/server/auth", () => ({ auth: mocks.auth }));
 vi.mock("~/lib/csrf", () => ({ validateSameOriginRequest: mocks.csrf }));
 vi.mock("~/lib/rate-limit", () => ({ rateLimit: mocks.rateLimit }));
 import { POST } from "./items/route";
-import { PATCH } from "./items/[id]/route";
+import { PATCH, DELETE } from "./items/[id]/route";
 import { GET } from "./route";
 
 const productId = "clh1q2w3e000008l4a5b6c7d8";
@@ -75,6 +77,16 @@ beforeEach(() => {
   );
 });
 describe("neutral persisted cart selection", () => {
+  it("removes only an owned line and preserves the already-absent 404 response", async () => {
+    mocks.prisma.cartItem.deleteMany.mockResolvedValueOnce({ count: 1 });
+    expect((await DELETE(request(null), context)).status).toBe(200);
+    expect(mocks.prisma.cartItem.deleteMany.mock.calls[0]![0].where).toEqual({
+      id: a,
+      userId: "owner",
+    });
+    mocks.prisma.cartItem.deleteMany.mockResolvedValueOnce({ count: 0 });
+    expect((await DELETE(request(null), context)).status).toBe(404);
+  });
   it("persists two choices by stable variant ID without mixing quantities or stock", async () => {
     for (const id of [a, b])
       expect(

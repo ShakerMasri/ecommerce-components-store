@@ -4,6 +4,7 @@ import type * as RateLimitModule from "~/lib/rate-limit";
 
 const mocks = vi.hoisted(() => {
   const tx = {
+    $executeRaw: vi.fn(),
     user: {
       findUnique: vi.fn(),
       update: vi.fn(),

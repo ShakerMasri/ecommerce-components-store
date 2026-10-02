@@ -13,6 +13,7 @@ import {
 } from "~/server/email";
 import { auth } from "~/server/auth";
 import { getEffectiveProductPrice } from "~/server/pricing";
+import { lockCustomerCart } from "~/server/cart-lock";
 import {
   createOrderSchema,
   customerOrdersQuerySchema,
@@ -226,6 +227,9 @@ export async function POST(request: Request) {
 
   try {
     const orderResult = await prisma.$transaction(async (tx) => {
+      // Wait before reading customer/cart state or checking the retry key: a
+      // preceding checkout may have committed while this request was waiting.
+      await lockCustomerCart(tx, userId);
       const customer = await tx.user.findUnique({
         where: {
           id: userId,
