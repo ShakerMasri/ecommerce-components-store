@@ -5,6 +5,7 @@ import { validateSameOriginRequest } from "~/lib/csrf";
 import { prisma } from "~/lib/prisma";
 import { rateLimit } from "~/lib/rate-limit";
 import { auth } from "~/server/auth";
+import { lockCustomerCart } from "~/server/cart-lock";
 import {
   cartItemParamsSchema,
   updateCartItemSchema,
@@ -109,6 +110,7 @@ export async function PATCH(request: Request, { params }: CartItemRouteProps) {
 
   try {
     const updatedCartItem = await prisma.$transaction(async (tx) => {
+      await lockCustomerCart(tx, userId);
       const existingCartItem = await tx.cartItem.findFirst({
         where: {
           id: parsedParams.data.id,
@@ -246,11 +248,14 @@ export async function DELETE(request: Request, { params }: CartItemRouteProps) {
   }
 
   try {
-    const result = await prisma.cartItem.deleteMany({
-      where: {
-        id: parsedParams.data.id,
-        userId,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      await lockCustomerCart(tx, userId);
+      return tx.cartItem.deleteMany({
+        where: {
+          id: parsedParams.data.id,
+          userId,
+        },
+      });
     });
 
     if (result.count === 0) {

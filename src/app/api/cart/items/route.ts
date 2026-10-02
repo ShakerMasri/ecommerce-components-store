@@ -4,6 +4,7 @@ import { validateSameOriginRequest } from "~/lib/csrf";
 import { prisma } from "~/lib/prisma";
 import { rateLimit } from "~/lib/rate-limit";
 import { auth } from "~/server/auth";
+import { lockCustomerCart } from "~/server/cart-lock";
 import { addCartItemSchema } from "~/server/validations/cart";
 
 function getCartLineKey(productId: string, productVariantId: string | null) {
@@ -88,6 +89,7 @@ export async function POST(request: Request) {
 
   try {
     const cartItem = await prisma.$transaction(async (tx) => {
+      await lockCustomerCart(tx, userId);
       const product = await tx.product.findUnique({
         where: {
           id: productId,
