@@ -19,8 +19,8 @@ type ProductVariant = {
   productId: string;
   sizeLabel: string | null;
   colorLabel: string | null;
-  sizeKey: string;
-  colorKey: string;
+  optionKey: string | null;
+  optionLabel: string | null;
   stock: number;
   isActive: boolean;
   sortOrder: number;
@@ -60,8 +60,9 @@ type ProductForm = {
 };
 
 type VariantForm = {
-  sizeLabel: string;
-  colorLabel: string;
+  optionLabel: string;
+  isDefault: boolean;
+  deactivateActiveOptions: boolean;
   stock: string;
   isActive: boolean;
   sortOrder: string;
@@ -198,8 +199,9 @@ function getEmptyProductForm(): ProductForm {
 
 function getEmptyVariantForm(): VariantForm {
   return {
-    sizeLabel: "",
-    colorLabel: "",
+    optionLabel: "",
+    isDefault: false,
+    deactivateActiveOptions: false,
     stock: "0",
     isActive: true,
     sortOrder: "0",
@@ -208,8 +210,9 @@ function getEmptyVariantForm(): VariantForm {
 
 function variantToForm(variant: ProductVariant): VariantForm {
   return {
-    sizeLabel: variant.sizeLabel ?? "",
-    colorLabel: variant.colorLabel ?? "",
+    optionLabel: variant.optionLabel ?? "",
+    isDefault: variant.optionKey === "default",
+    deactivateActiveOptions: false,
     stock: String(variant.stock),
     isActive: variant.isActive,
     sortOrder: String(variant.sortOrder),
@@ -247,14 +250,14 @@ function makeSlug(value: string) {
     .replace(/-+/g, "-");
 }
 
-function prepareProductPayload(form: ProductForm) {
+function prepareProductPayload(form: ProductForm, includeStock = false) {
   return {
     name: form.name,
     slug: form.slug,
     description: form.description.trim() ? form.description : null,
     price: form.price,
     discountPrice: form.discountPrice.trim() ? form.discountPrice : null,
-    stock: form.stock,
+    ...(includeStock ? { stock: form.stock } : {}),
     images: form.images,
     isFeatured: form.isFeatured,
     showStock: form.showStock,
@@ -262,23 +265,33 @@ function prepareProductPayload(form: ProductForm) {
   };
 }
 
-function prepareVariantPayload(form: VariantForm) {
+function prepareVariantPayload(
+  form: VariantForm,
+  deactivateOptionIds: string[] = [],
+) {
   return {
-    sizeLabel: form.sizeLabel,
-    colorLabel: form.colorLabel,
+    optionLabel: form.isDefault ? null : form.optionLabel,
+    isDefault: form.isDefault,
+    deactivateOptionIds: form.deactivateActiveOptions
+      ? deactivateOptionIds
+      : [],
     stock: form.stock,
     isActive: form.isActive,
     sortOrder: form.sortOrder,
   };
 }
 
-function FieldError({ message }: { message?: string }) {
+function FieldError({ message, id }: { message?: string; id?: string }) {
   if (!message) {
     return null;
   }
 
   return (
-    <p className="mt-1 text-sm font-medium text-[var(--danger-ink)]">
+    <p
+      id={id}
+      role="alert"
+      className="mt-1 text-sm font-medium text-[var(--danger-ink)]"
+    >
       {message}
     </p>
   );
@@ -314,7 +327,8 @@ type ProductFieldErrorLabels = {
   invalidDiscountPrice: string;
   invalidCategory: string;
   invalidImage: string;
-  invalidOptionSizeOrColor: string;
+  invalidOptionLabel: string;
+  invalidOptionState: string;
   invalidOptionStock: string;
   invalidOptionSortOrder: string;
 };
@@ -332,7 +346,9 @@ function getLocalizedFieldError(
 
   switch (field) {
     case "_form":
-      return labels.checkHighlightedFields;
+      return /option|default|deactivate|reload/.test(firstMessage)
+        ? labels.invalidOptionState
+        : labels.checkHighlightedFields;
     case "name":
       return labels.invalidProductName;
     case "slug":
@@ -348,9 +364,8 @@ function getLocalizedFieldError(
     case "images":
     case "file":
       return labels.invalidImage;
-    case "sizeLabel":
-    case "colorLabel":
-      return labels.invalidOptionSizeOrColor;
+    case "optionLabel":
+      return labels.invalidOptionLabel;
     case "stock":
       return labels.invalidOptionStock;
     case "sortOrder":
@@ -396,6 +411,8 @@ type ProductFormLabels = {
   showStockOnStore: string;
   showStockHelp: string;
   stockHidden: string;
+  stock: string;
+  stockHelp: string;
   images: string;
   imageUrlPlaceholder: string;
   addUrl: string;
@@ -412,12 +429,14 @@ type ProductFormLabels = {
   invalidDiscountPrice: string;
   invalidCategory: string;
   invalidImage: string;
-  invalidOptionSizeOrColor: string;
+  invalidOptionLabel: string;
+  invalidOptionState: string;
   invalidOptionStock: string;
   invalidOptionSortOrder: string;
 };
 
 type ProductFormFieldsProps = {
+  isCreating?: boolean;
   form: ProductForm;
   setForm: Dispatch<SetStateAction<ProductForm>>;
   categories: Category[];
@@ -432,6 +451,7 @@ type ProductFormFieldsProps = {
 };
 
 function ProductFormFields({
+  isCreating = false,
   form,
   setForm,
   categories,
@@ -463,6 +483,27 @@ function ProductFormFields({
         </div>
       )}
 
+      {isCreating && (
+        <label className="grid gap-2 text-sm">
+          {labels.stock}
+          <input
+            aria-label={labels.stock}
+            aria-invalid={Boolean(errors.stock?.[0])}
+            aria-describedby="initial-stock-error"
+            type="number"
+            min="0"
+            max="1000000"
+            step="1"
+            value={form.stock}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, stock: event.target.value }))
+            }
+            className="rounded-xl border px-3 py-2"
+          />
+          <span>{labels.stockHelp}</span>
+          <FieldError id="initial-stock-error" message={errors.stock?.[0]} />
+        </label>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
@@ -737,8 +778,10 @@ type ProductOptionLabels = {
   optionsCountHelp: string;
   activeOptionStock: string;
   activeOptionStockHelp: string;
-  size: string;
-  color: string;
+  optionLabel: string;
+  defaultOption: string;
+  deactivateOtherOptions: string;
+  unresolvedOption: string;
   stock: string;
   sortOrder: string;
   active: string;
@@ -748,8 +791,7 @@ type ProductOptionLabels = {
   makingInactive: string;
   addOption: string;
   addingOption: string;
-  sizePlaceholder: string;
-  colorPlaceholder: string;
+  optionLabelPlaceholder: string;
   checkHighlightedFields: string;
   invalidProductName: string;
   invalidProductSlug: string;
@@ -759,7 +801,8 @@ type ProductOptionLabels = {
   invalidDiscountPrice: string;
   invalidCategory: string;
   invalidImage: string;
-  invalidOptionSizeOrColor: string;
+  invalidOptionLabel: string;
+  invalidOptionState: string;
   invalidOptionStock: string;
   invalidOptionSortOrder: string;
 };
@@ -860,6 +903,7 @@ function VariantManagementSection({
       {showCreateVariantErrors && message && (
         <div className="mt-4">
           <InlineFeedback message={message} type={messageType} />
+          <FieldError message={errors._form?.[0]} />
         </div>
       )}
 
@@ -885,49 +929,45 @@ function VariantManagementSection({
                 {showVariantErrors && message && (
                   <div className="mb-3">
                     <InlineFeedback message={message} type={messageType} />
+                    <FieldError message={errors._form?.[0]} />
                   </div>
                 )}
 
-                <div className="grid gap-3 md:grid-cols-4">
+                <p className="mb-3 text-sm">
+                  {draft.isDefault
+                    ? labels.defaultOption
+                    : !variant.optionKey
+                      ? `${labels.unresolvedOption} ${[variant.sizeLabel, variant.colorLabel].filter(Boolean).join(" / ")}`
+                      : null}
+                </p>
+                <div className="grid gap-3 md:grid-cols-3">
                   <div>
                     <label className="text-xs font-semibold text-[var(--ink)]">
-                      {labels.size}
+                      {labels.optionLabel}
                     </label>
                     <input
-                      value={draft.sizeLabel}
+                      aria-describedby={`option-${variant.id}-error`}
+                      aria-label={labels.optionLabel}
+                      disabled={draft.isDefault}
+                      aria-invalid={Boolean(
+                        showVariantErrors && errors.optionLabel?.[0],
+                      )}
+                      value={draft.optionLabel}
                       onChange={(event) =>
                         onUpdateVariantEditDraft(
                           variant.id,
-                          "sizeLabel",
+                          "optionLabel",
                           event.target.value,
                         )
                       }
                       className="mt-1 w-full rounded-xl border border-[var(--line-soft)] bg-[var(--surface-card)] px-3 py-2 text-sm text-[var(--ink)] transition outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-                      placeholder="M"
+                      placeholder={labels.optionLabelPlaceholder}
                     />
                     {showVariantErrors && (
-                      <FieldError message={errors.sizeLabel?.[0]} />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-[var(--ink)]">
-                      {labels.color}
-                    </label>
-                    <input
-                      value={draft.colorLabel}
-                      onChange={(event) =>
-                        onUpdateVariantEditDraft(
-                          variant.id,
-                          "colorLabel",
-                          event.target.value,
-                        )
-                      }
-                      className="mt-1 w-full rounded-xl border border-[var(--line-soft)] bg-[var(--surface-card)] px-3 py-2 text-sm text-[var(--ink)] transition outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-                      placeholder="Black"
-                    />
-                    {showVariantErrors && (
-                      <FieldError message={errors.colorLabel?.[0]} />
+                      <FieldError
+                        id={`option-${variant.id}-error`}
+                        message={errors.optionLabel?.[0]}
+                      />
                     )}
                   </div>
 
@@ -978,6 +1018,20 @@ function VariantManagementSection({
                   </div>
                 </div>
 
+                <label className="mt-3 flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={draft.deactivateActiveOptions}
+                    onChange={(event) =>
+                      onUpdateVariantEditDraft(
+                        variant.id,
+                        "deactivateActiveOptions",
+                        event.target.checked,
+                      )
+                    }
+                  />
+                  {labels.deactivateOtherOptions}
+                </label>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <label className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                     <input
@@ -1033,46 +1087,62 @@ function VariantManagementSection({
           {labels.addOption}
         </h4>
 
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={variantDraft.isDefault}
+            onChange={(event) =>
+              onUpdateVariantDraft(
+                product.id,
+                "isDefault",
+                event.target.checked,
+              )
+            }
+          />
+          {labels.defaultOption}
+        </label>
+        <label className="mt-2 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={variantDraft.deactivateActiveOptions}
+            onChange={(event) =>
+              onUpdateVariantDraft(
+                product.id,
+                "deactivateActiveOptions",
+                event.target.checked,
+              )
+            }
+          />
+          {labels.deactivateOtherOptions}
+        </label>
         <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
           <div>
             <label className="text-xs font-semibold text-[var(--ink)]">
-              {labels.size}
+              {labels.optionLabel}
             </label>
             <input
-              value={variantDraft.sizeLabel}
+              aria-describedby={`option-new-${product.id}-error`}
+              aria-label={labels.optionLabel}
+              disabled={variantDraft.isDefault}
+              aria-invalid={Boolean(
+                showCreateVariantErrors && errors.optionLabel?.[0],
+              )}
+              value={variantDraft.optionLabel}
               onChange={(event) =>
                 onUpdateVariantDraft(
                   product.id,
-                  "sizeLabel",
+                  "optionLabel",
                   event.target.value,
                 )
               }
               className="mt-1 w-full rounded-xl border border-[var(--line-soft)] bg-[var(--surface-card)] px-3 py-2 text-sm text-[var(--ink)] transition outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-              placeholder={labels.sizePlaceholder}
+              placeholder={labels.optionLabelPlaceholder}
             />
             {showCreateVariantErrors && (
-              <FieldError message={errors.sizeLabel?.[0]} />
-            )}
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-[var(--ink)]">
-              {labels.color}
-            </label>
-            <input
-              value={variantDraft.colorLabel}
-              onChange={(event) =>
-                onUpdateVariantDraft(
-                  product.id,
-                  "colorLabel",
-                  event.target.value,
-                )
-              }
-              className="mt-1 w-full rounded-xl border border-[var(--line-soft)] bg-[var(--surface-card)] px-3 py-2 text-sm text-[var(--ink)] transition outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-              placeholder={labels.colorPlaceholder}
-            />
-            {showCreateVariantErrors && (
-              <FieldError message={errors.colorLabel?.[0]} />
+              <FieldError
+                id={`option-new-${product.id}-error`}
+                message={errors.optionLabel?.[0]}
+              />
             )}
           </div>
 
@@ -1408,7 +1478,7 @@ export function AdminProductsClient() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(prepareProductPayload(createForm)),
+        body: JSON.stringify(prepareProductPayload(createForm, true)),
       });
 
       const data = (await response.json()) as ProductsResponse;
@@ -1592,7 +1662,15 @@ export function AdminProductsClient() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(prepareVariantPayload(draft)),
+          body: JSON.stringify(
+            prepareVariantPayload(
+              draft,
+              products
+                .find((p) => p.id === productId)
+                ?.variants.filter((v) => v.isActive)
+                .map((v) => v.id) ?? [],
+            ),
+          ),
         },
       );
 
@@ -1638,7 +1716,15 @@ export function AdminProductsClient() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(prepareVariantPayload(draft)),
+          body: JSON.stringify(
+            prepareVariantPayload(
+              draft,
+              products
+                .find((p) => p.id === productId)
+                ?.variants.filter((v) => v.isActive && v.id !== variantId)
+                .map((v) => v.id) ?? [],
+            ),
+          ),
         },
       );
 
@@ -1850,6 +1936,7 @@ export function AdminProductsClient() {
 
             <div className="mt-6">
               <ProductFormFields
+                isCreating
                 form={createForm}
                 setForm={setCreateForm}
                 categories={categories}

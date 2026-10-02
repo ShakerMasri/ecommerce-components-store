@@ -1,3 +1,8 @@
+import {
+  lockOptionProduct,
+  prepareOptionMutation,
+  OptionMutationError,
+} from "~/server/sellable-option-mutation";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "~/lib/admin";
@@ -20,6 +25,8 @@ type ProductVariantRouteProps = {
 const adminProductVariantSelect = {
   id: true,
   productId: true,
+  optionLabel: true,
+  optionKey: true,
   sizeLabel: true,
   colorLabel: true,
   sizeKey: true,
@@ -49,21 +56,8 @@ function notFoundResponse() {
 
 function getUniqueVariantError(): Record<string, string[]> {
   return {
-    _form: ["This product already has a variant with the same size and color."],
+    _form: ["This product already has this option key."],
   };
-}
-
-async function findVariantForProduct(productId: string, variantId: string) {
-  const variant = await prisma.productVariant.findUnique({
-    where: { id: variantId },
-    select: { id: true, productId: true, sizeLabel: true, colorLabel: true },
-  });
-
-  if (variant?.productId !== productId) {
-    return null;
-  }
-
-  return variant;
 }
 
 export async function PATCH(
@@ -109,40 +103,19 @@ export async function PATCH(
   }
 
   try {
-    const existingVariant = await findVariantForProduct(
-      parsedParams.data.id,
-      parsedParams.data.variantId,
-    );
-
-    if (!existingVariant) {
-      return notFoundResponse();
-    }
-
-    const nextSizeLabel =
-      parsedBody.data.sizeLabel !== undefined
-        ? parsedBody.data.sizeLabel
-        : existingVariant.sizeLabel;
-    const nextColorLabel =
-      parsedBody.data.colorLabel !== undefined
-        ? parsedBody.data.colorLabel
-        : existingVariant.colorLabel;
-
-    if (!nextSizeLabel && !nextColorLabel) {
-      return NextResponse.json(
-        {
-          message: "Invalid input.",
-          errors: {
-            _form: ["At least a size or color is required."],
-          },
-        },
-        { status: 400 },
+    const variant = await prisma.$transaction(async (tx) => {
+      await lockOptionProduct(tx, parsedParams.data.id);
+      const data = await prepareOptionMutation(
+        tx,
+        parsedParams.data.id,
+        parsedBody.data,
+        parsedParams.data.variantId,
       );
-    }
-
-    const variant = await prisma.productVariant.update({
-      where: { id: parsedParams.data.variantId },
-      data: parsedBody.data,
-      select: adminProductVariantSelect,
+      return tx.productVariant.update({
+        where: { id: parsedParams.data.variantId },
+        data,
+        select: adminProductVariantSelect,
+      });
     });
 
     return NextResponse.json({
@@ -150,6 +123,11 @@ export async function PATCH(
       variant: serializeProductVariant(variant),
     });
   } catch (error) {
+    if (error instanceof OptionMutationError)
+      return NextResponse.json(
+        { message: error.message, errors: { _form: [error.message] } },
+        { status: error.message === "Not found." ? 404 : 400 },
+      );
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
@@ -208,19 +186,18 @@ export async function DELETE(
   }
 
   try {
-    const existingVariant = await findVariantForProduct(
-      parsedParams.data.id,
-      parsedParams.data.variantId,
-    );
-
-    if (!existingVariant) {
-      return notFoundResponse();
-    }
-
-    const variant = await prisma.productVariant.update({
-      where: { id: parsedParams.data.variantId },
-      data: { isActive: false },
-      select: adminProductVariantSelect,
+    const variant = await prisma.$transaction(async (tx) => {
+      await lockOptionProduct(tx, parsedParams.data.id);
+      const existingVariant = await tx.productVariant.findUnique({
+        where: { id: parsedParams.data.variantId },
+      });
+      if (existingVariant?.productId !== parsedParams.data.id)
+        throw new OptionMutationError("Not found.");
+      return tx.productVariant.update({
+        where: { id: parsedParams.data.variantId },
+        data: { isActive: false },
+        select: adminProductVariantSelect,
+      });
     });
 
     return NextResponse.json({
@@ -228,6 +205,11 @@ export async function DELETE(
       variant: serializeProductVariant(variant),
     });
   } catch (error) {
+    if (error instanceof OptionMutationError)
+      return NextResponse.json(
+        { message: error.message, errors: { _form: [error.message] } },
+        { status: error.message === "Not found." ? 404 : 400 },
+      );
     const errorId = logError("Failed to deactivate product variant.", error, {
       action: "admin.productVariants.deactivate",
       route: "/api/admin/products/[id]/variants/[variantId]",

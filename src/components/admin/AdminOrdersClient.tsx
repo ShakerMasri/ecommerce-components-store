@@ -1,4 +1,5 @@
 "use client";
+import { historicalOptionLabel } from "~/lib/sellable-options";
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
@@ -24,6 +25,7 @@ type OrderItem = {
   productSlugAtPurchase: string;
   productImagesAtPurchase: string[];
   productVariantId: string | null;
+  selectedOptionLabel?: string | null;
   selectedSizeLabel: string | null;
   selectedColorLabel: string | null;
 };
@@ -146,9 +148,7 @@ function formatFallbackLabel(value: string) {
 }
 
 function getVariantSnapshotLabel(item: OrderItem) {
-  return [item.selectedSizeLabel, item.selectedColorLabel]
-    .filter(Boolean)
-    .join(" / ");
+  return historicalOptionLabel(item);
 }
 
 function getShortOrderId(orderId: string) {
@@ -552,7 +552,7 @@ export function AdminOrdersClient() {
               setFilters((current) => ({ ...current, q: event.target.value }))
             }
             placeholder={t.admin.orders.searchPlaceholder}
-            className="mt-2 w-full rounded-2xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-orange-600 focus:ring-4 focus:ring-orange-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:border-orange-400 dark:focus:ring-orange-950"
+            className="mt-2 w-full rounded-2xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-950 transition outline-none placeholder:text-zinc-400 focus:border-orange-600 focus:ring-4 focus:ring-orange-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:border-orange-400 dark:focus:ring-orange-950"
           />
         </label>
 
@@ -568,7 +568,7 @@ export function AdminOrdersClient() {
                 status: event.target.value as OrderFilters["status"],
               }))
             }
-            className="mt-2 w-full rounded-2xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-950 outline-none transition focus:border-orange-600 focus:ring-4 focus:ring-orange-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:border-orange-400 dark:focus:ring-orange-950"
+            className="mt-2 w-full rounded-2xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-950 transition outline-none focus:border-orange-600 focus:ring-4 focus:ring-orange-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:border-orange-400 dark:focus:ring-orange-950"
           >
             <option value="ALL">{t.admin.orders.allStatuses}</option>
             {orderStatuses.map((status) => (
@@ -592,7 +592,7 @@ export function AdminOrdersClient() {
                   .value as OrderFilters["paymentStatus"],
               }))
             }
-            className="mt-2 w-full rounded-2xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-950 outline-none transition focus:border-orange-600 focus:ring-4 focus:ring-orange-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:border-orange-400 dark:focus:ring-orange-950"
+            className="mt-2 w-full rounded-2xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-950 transition outline-none focus:border-orange-600 focus:ring-4 focus:ring-orange-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:border-orange-400 dark:focus:ring-orange-950"
           >
             <option value="ALL">{t.admin.orders.allPaymentStatuses}</option>
             {paymentStatuses.map((status) => (
@@ -913,7 +913,7 @@ export function AdminOrdersClient() {
                                 event.target.value as OrderStatus,
                               )
                             }
-                            className="mt-2 w-full rounded-2xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-950 outline-none transition focus:border-orange-600 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:border-orange-400 dark:focus:ring-orange-950"
+                            className="mt-2 w-full rounded-2xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-950 transition outline-none focus:border-orange-600 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:border-orange-400 dark:focus:ring-orange-950"
                           >
                             {statusOptionsByCurrentStatus[
                               selectedOrder.status
@@ -1061,7 +1061,9 @@ export function AdminOrdersClient() {
                               {t.admin.orders.deliveryArea}
                             </dt>
                             <dd className="mt-1 font-semibold text-zinc-950 dark:text-white">
-                              {getDeliveryAreaLabel(selectedOrder.deliveryAreaKey)}
+                              {getDeliveryAreaLabel(
+                                selectedOrder.deliveryAreaKey,
+                              )}
                             </dd>
                           </div>
 

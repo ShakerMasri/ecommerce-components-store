@@ -1,3 +1,4 @@
+import { isMappedOption } from "~/lib/sellable-options";
 import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { validateSameOriginRequest } from "~/lib/csrf";
@@ -40,14 +41,14 @@ function cartItemErrorResponse(error: unknown) {
 
   if (error instanceof Error && error.message === "VARIANT_REQUIRED") {
     return NextResponse.json(
-      { message: "Please remove this item and choose a size or color again." },
+      { message: "Please remove this item and choose a option again." },
       { status: 400 },
     );
   }
 
   if (error instanceof Error && error.message === "VARIANT_NOT_AVAILABLE") {
     return NextResponse.json(
-      { message: "The selected size or color is no longer available." },
+      { message: "The selected option is no longer available." },
       { status: 400 },
     );
   }
@@ -128,6 +129,8 @@ export async function PATCH(request: Request, { params }: CartItemRouteProps) {
               productId: true,
               stock: true,
               isActive: true,
+              optionKey: true,
+              optionLabel: true,
             },
           },
         },
@@ -147,7 +150,9 @@ export async function PATCH(request: Request, { params }: CartItemRouteProps) {
 
       if (
         !existingCartItem.productVariant?.isActive ||
-        existingCartItem.productVariant.productId !== existingCartItem.product.id
+        !isMappedOption(existingCartItem.productVariant) ||
+        existingCartItem.productVariant.productId !==
+          existingCartItem.product.id
       ) {
         throw new Error("VARIANT_NOT_AVAILABLE");
       }

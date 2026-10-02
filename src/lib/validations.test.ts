@@ -5,6 +5,7 @@ import {
   loginSchema,
   registerSchema,
   updateProfileSchema,
+  updateProductSchema,
 } from "./validations";
 
 describe("registerSchema", () => {
@@ -127,6 +128,11 @@ describe("createCategorySchema", () => {
 });
 
 describe("createProductSchema", () => {
+  it("keeps legacy Product.stock out of product update writes", () => {
+    expect(updateProductSchema.parse({ name: "Component", stock: 99 })).toEqual(
+      { name: "Component" },
+    );
+  });
   const validProduct = {
     name: "Test Product",
     slug: "test-product",

@@ -1,3 +1,4 @@
+import { isMappedOption } from "~/lib/sellable-options";
 import { NextResponse } from "next/server";
 import { validateSameOriginRequest } from "~/lib/csrf";
 import { prisma } from "~/lib/prisma";
@@ -6,7 +7,9 @@ import { auth } from "~/server/auth";
 import { addCartItemSchema } from "~/server/validations/cart";
 
 function getCartLineKey(productId: string, productVariantId: string | null) {
-  return productVariantId ? `variant:${productVariantId}` : `product:${productId}`;
+  return productVariantId
+    ? `variant:${productVariantId}`
+    : `product:${productId}`;
 }
 
 function cartItemErrorResponse(error: unknown) {
@@ -19,7 +22,7 @@ function cartItemErrorResponse(error: unknown) {
 
   if (error instanceof Error && error.message === "VARIANT_REQUIRED") {
     return NextResponse.json(
-      { message: "Please choose a size or color before adding this product." },
+      { message: "Please choose a option before adding this product." },
       { status: 400 },
     );
   }
@@ -33,7 +36,7 @@ function cartItemErrorResponse(error: unknown) {
 
   if (error instanceof Error && error.message === "VARIANT_NOT_AVAILABLE") {
     return NextResponse.json(
-      { message: "The selected size or color is not available." },
+      { message: "The selected option is not available." },
       { status: 400 },
     );
   }
@@ -98,6 +101,8 @@ export async function POST(request: Request) {
             },
             select: {
               id: true,
+              optionKey: true,
+              optionLabel: true,
               stock: true,
             },
           },
@@ -116,7 +121,7 @@ export async function POST(request: Request) {
         (variant) => variant.id === productVariantId,
       );
 
-      if (!selectedVariant) {
+      if (!selectedVariant || !isMappedOption(selectedVariant)) {
         throw new Error("VARIANT_NOT_AVAILABLE");
       }
 
@@ -126,7 +131,10 @@ export async function POST(request: Request) {
         throw new Error("INSUFFICIENT_STOCK");
       }
 
-      const cartLineKey = getCartLineKey(product.id, selectedVariant?.id ?? null);
+      const cartLineKey = getCartLineKey(
+        product.id,
+        selectedVariant?.id ?? null,
+      );
 
       const existingCartItem = await tx.cartItem.findUnique({
         where: {

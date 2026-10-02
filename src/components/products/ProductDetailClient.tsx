@@ -11,6 +11,8 @@ import {
 
 type ProductVariant = {
   id: string;
+  optionKey: string | null;
+  optionLabel: string | null;
   sizeLabel: string | null;
   colorLabel: string | null;
   stock: number | null;
@@ -58,10 +60,7 @@ function getDisplayPrice(product: Product) {
 }
 
 function formatVariantLabel(variant: ProductVariant, fallback: string) {
-  return (
-    [variant.sizeLabel, variant.colorLabel].filter(Boolean).join(" / ") ||
-    fallback
-  );
+  return variant.optionLabel ?? fallback;
 }
 
 export function ProductDetailClient({ slug }: ProductDetailClientProps) {
@@ -100,7 +99,10 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
 
         setProduct(data.product);
         setSelectedImage(data.product.images.at(0) ?? null);
-        setSelectedVariantId(null);
+        setSelectedVariantId(
+          data.product.variants.find((v) => v.optionKey === "default")?.id ??
+            null,
+        );
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
@@ -194,22 +196,21 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
     );
   }
 
+  const requiresSelection = product.variants.some(
+    (v) => v.optionKey !== "default",
+  );
   const selectedVariant = product.variants.find(
     (variant) => variant.id === selectedVariantId,
   );
   const selectedStock = selectedVariant?.stock ?? product.stock;
   const customerVisibleStock = product.showStock ? selectedStock : null;
-  const selectedIsInStock = selectedVariant
-    ? selectedVariant.isInStock
-    : product.hasVariants
-      ? false
-      : product.isInStock;
+  const selectedIsInStock = Boolean(selectedVariant?.isInStock);
   const isOutOfStock = !product.isInStock;
   const hasDiscount = product.discountPrice !== null;
   const selectedImageIndex = selectedImage
     ? product.images.findIndex((image) => image === selectedImage)
     : -1;
-  const variantSelectionMessage = product.hasVariants
+  const variantSelectionMessage = requiresSelection
     ? t.products.selectOptionRequired
     : null;
 
@@ -352,7 +353,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
               </p>
             </div>
 
-            {product.hasVariants ? (
+            {requiresSelection ? (
               <div className="rounded-3xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
@@ -436,7 +437,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
                 stock={customerVisibleStock}
                 isInStock={selectedIsInStock}
                 disabledReason={
-                  product.hasVariants && !selectedVariant
+                  requiresSelection && !selectedVariant
                     ? variantSelectionMessage
                     : null
                 }

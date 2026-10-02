@@ -176,6 +176,7 @@ export const createProductSchema = productFieldsSchema.superRefine(
 export const updateProductSchema = productFieldsSchema
   .omit({
     isArchived: true,
+    stock: true,
   })
   .partial()
   .superRefine(validateDiscountPrice);

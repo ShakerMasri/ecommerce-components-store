@@ -42,6 +42,7 @@ const adminOrderDetailSelect = {
       productImagesAtPurchase: true,
       productId: true,
       productVariantId: true,
+      selectedOptionLabel: true,
       selectedSizeLabel: true,
       selectedColorLabel: true,
     },

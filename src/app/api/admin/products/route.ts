@@ -12,6 +12,8 @@ import { getAdminInventoryPage } from "~/server/admin-product-inventory";
 const adminProductVariantSelect = {
   id: true,
   productId: true,
+  optionLabel: true,
+  optionKey: true,
   sizeLabel: true,
   colorLabel: true,
   sizeKey: true,
@@ -210,7 +212,18 @@ export async function POST(request: Request) {
     }
 
     const product = await prisma.product.create({
-      data: parsed.data,
+      data: {
+        ...parsed.data,
+        stock: 0,
+        variants: {
+          create: {
+            optionKey: "default",
+            optionLabel: null,
+            stock: parsed.data.stock,
+            isActive: true,
+          },
+        },
+      },
       select: adminProductSelect,
     });
 

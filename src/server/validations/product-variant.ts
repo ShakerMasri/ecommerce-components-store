@@ -1,20 +1,24 @@
 import { z } from "zod";
+import { normalizeOptionKey } from "~/lib/sellable-options";
 
 const nullableTrimmedString = (max: number, label: string) =>
   z
-    .preprocess((value) => {
-      if (value === undefined || value === null) {
-        return null;
-      }
+    .preprocess(
+      (value) => {
+        if (value === undefined || value === null) {
+          return null;
+        }
 
-      if (typeof value !== "string") {
-        return value;
-      }
+        if (typeof value !== "string") {
+          return value;
+        }
 
-      const trimmed = value.trim();
+        const trimmed = value.trim();
 
-      return trimmed.length > 0 ? trimmed : null;
-    }, z.string().max(max, `${label} is too long.`).nullable())
+        return trimmed.length > 0 ? trimmed : null;
+      },
+      z.string().max(max, `${label} is too long.`).nullable(),
+    )
     .default(null);
 
 const optionalBoolean = z
@@ -57,91 +61,55 @@ const sortOrderSchema = z
   }, z.number().int().min(0).max(10_000))
   .default(0);
 
-export function normalizeVariantKey(value: string | null | undefined) {
-  return (value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
+const variantInputBaseSchema = z
+  .object({
+    optionLabel: nullableTrimmedString(160, "Option label"),
+    isDefault: z.boolean().default(false),
+    stock: nonNegativeInteger("Stock"),
+    isActive: optionalBoolean,
+    sortOrder: sortOrderSchema,
+    deactivateOptionIds: z
+      .array(z.string().cuid("Invalid option ID."))
+      .max(1000)
+      .default([]),
+  })
+  .strict();
 
-
-const variantInputBaseSchema = z.object({
-  sizeLabel: nullableTrimmedString(40, "Size label"),
-  colorLabel: nullableTrimmedString(80, "Color label"),
-  stock: nonNegativeInteger("Stock"),
-  isActive: optionalBoolean,
-  sortOrder: sortOrderSchema,
-});
-
-export const createProductVariantSchema = variantInputBaseSchema
-  .superRefine((value, context) => {
-    if (!value.sizeLabel && !value.colorLabel) {
+export const createProductVariantSchema = variantInputBaseSchema.superRefine(
+  (value, context) => {
+    if (value.optionLabel && normalizeOptionKey(value.optionLabel).length > 200)
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["sizeLabel"],
-        message: "At least a size or color is required.",
+        path: ["optionLabel"],
+        message: "Normalized option label is too long.",
       });
+    if (value.isDefault ? Boolean(value.optionLabel) : !value.optionLabel) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["colorLabel"],
-        message: "At least a size or color is required.",
+        path: ["optionLabel"],
+        message: value.isDefault
+          ? "Default options have no label."
+          : "Enter an option label.",
       });
     }
-  })
-  .transform((value) => ({
-    ...value,
-    sizeKey: normalizeVariantKey(value.sizeLabel),
-    colorKey: normalizeVariantKey(value.colorLabel),
-  }));
+  },
+);
 
 export const updateProductVariantSchema = variantInputBaseSchema
   .partial()
   .superRefine((value, context) => {
-    const hasAnyField = Object.keys(value).length > 0;
-
-    if (!hasAnyField) {
+    if (value.optionLabel && normalizeOptionKey(value.optionLabel).length > 200)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["optionLabel"],
+        message: "Normalized option label is too long.",
+      });
+    if (!Object.keys(value).length)
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["_form"],
-        message: "At least one variant field is required.",
+        message: "At least one option field is required.",
       });
-    }
-
-    if (
-      Object.prototype.hasOwnProperty.call(value, "sizeLabel") &&
-      Object.prototype.hasOwnProperty.call(value, "colorLabel") &&
-      !value.sizeLabel &&
-      !value.colorLabel
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["sizeLabel"],
-        message: "At least a size or color is required.",
-      });
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["colorLabel"],
-        message: "At least a size or color is required.",
-      });
-    }
-  })
-  .transform((value) => {
-    const nextValue = { ...value } as typeof value & {
-      sizeKey?: string;
-      colorKey?: string;
-    };
-
-    if (Object.prototype.hasOwnProperty.call(value, "sizeLabel")) {
-      nextValue.sizeKey = normalizeVariantKey(value.sizeLabel);
-    }
-
-    if (Object.prototype.hasOwnProperty.call(value, "colorLabel")) {
-      nextValue.colorKey = normalizeVariantKey(value.colorLabel);
-    }
-
-    return nextValue;
   });
 
 export const productVariantParamsSchema = z.object({

@@ -48,14 +48,17 @@ vi.mock("~/lib/prisma", () => ({
 import { PATCH } from "./route";
 
 function createRequest(status: OrderStatus) {
-  return new Request(`http://localhost:3000/api/admin/orders/${validOrderId}/status`, {
-    method: "PATCH",
-    headers: {
-      "content-type": "application/json",
-      origin: "http://localhost:3000",
+  return new Request(
+    `http://localhost:3000/api/admin/orders/${validOrderId}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({ status }),
     },
-    body: JSON.stringify({ status }),
-  });
+  );
 }
 
 function createRouteContext() {
@@ -238,9 +241,7 @@ describe("admin order status route", () => {
     const body = (await response.json()) as { message: string };
 
     expect(response.status).toBe(409);
-    expect(body.message).toContain(
-      "created before checkout stock reservation",
-    );
+    expect(body.message).toContain("created before checkout stock reservation");
     expect(mocks.tx.product.updateMany).not.toHaveBeenCalled();
     expect(mocks.tx.productVariant.updateMany).not.toHaveBeenCalled();
     expect(mocks.tx.order.updateMany).not.toHaveBeenCalled();
@@ -391,4 +392,46 @@ describe("admin order status route", () => {
       },
     });
   });
+  it.each(["default-id", "named-id"])(
+    "restocks %s once across repeated cancellations, including compatibility rollback",
+    async (productVariantId) => {
+      const reserved = {
+        id: validOrderId,
+        status: OrderStatus.PENDING,
+        stockDeductedAt: new Date(),
+        items: [{ productId: "p", productVariantId, quantity: 2 }],
+      };
+      mocks.tx.order.findUnique.mockResolvedValue(reserved);
+      mocks.tx.order.findUniqueOrThrow.mockResolvedValue(
+        createSavedOrder(OrderStatus.CANCELLED),
+      );
+      expect(
+        (
+          await PATCH(
+            createRequest(OrderStatus.CANCELLED),
+            createRouteContext(),
+          )
+        ).status,
+      ).toBe(200);
+      mocks.tx.order.findUnique.mockResolvedValue({
+        ...reserved,
+        status: OrderStatus.CANCELLED,
+        stockDeductedAt: null,
+      });
+      expect(
+        (
+          await PATCH(
+            createRequest(OrderStatus.CANCELLED),
+            createRouteContext(),
+          )
+        ).status,
+      ).toBe(200);
+      expect(mocks.tx.productVariant.updateMany).toHaveBeenCalledTimes(1);
+      expect(mocks.tx.productVariant.updateMany).toHaveBeenCalledWith({
+        where: { id: productVariantId },
+        data: { stock: { increment: 2 } },
+      });
+      expect(mocks.tx.product.updateMany).not.toHaveBeenCalled();
+    },
+  );
 });
