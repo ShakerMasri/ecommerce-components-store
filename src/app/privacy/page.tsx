@@ -4,6 +4,7 @@ import { policyConfig } from "~/config/policies";
 import { storeConfig } from "~/config/store";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/privacy" },
   title: `${policyConfig.locales.en.pages.privacy.title} | ${storeConfig.name}`,
   description: policyConfig.locales.en.pages.privacy.description,
 };

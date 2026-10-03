@@ -4,6 +4,7 @@ import { contactConfig } from "~/config/contact";
 import { storeConfig } from "~/config/store";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/contact" },
   title: `Contact | ${storeConfig.name}`,
   description: contactConfig.contactPage.description.en,
 };

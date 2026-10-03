@@ -11,10 +11,10 @@ import {
 
 describe("checkout compliance disclosures", () => {
   it("exposes localized delivery method and duration from typed config", () => {
-    expect(getDeliveryMethodLabel("en")).toContain("delivery");
+    expect(getDeliveryMethodLabel("en").toLowerCase()).toContain("delivery");
     expect(getDeliveryMethodLabel("ar")).toContain("توصيل");
-    expect(getEstimatedDeliveryDuration("en")).toContain("1–2 days");
-    expect(getEstimatedDeliveryDuration("ar")).toContain("يوم");
+    expect(getEstimatedDeliveryDuration("en")).toContain("coordinate");
+    expect(getEstimatedDeliveryDuration("ar")).toContain("تنسيق");
   });
 
   it("omits unconfigured or placeholder tax wording", () => {
