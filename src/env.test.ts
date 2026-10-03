@@ -19,6 +19,7 @@ const configuration = {
   SMTP_PASSWORD: "r3-placeholder-password",
   SMTP_FROM_EMAIL: "sender@example.invalid",
   SMTP_FROM_NAME: "R3 placeholder",
+  ORDER_RECEIPT_FROM_EMAIL: "",
   ORDER_NOTIFICATION_EMAIL: "",
   UPSTASH_REDIS_REST_URL: "https://redis.example.invalid",
   UPSTASH_REDIS_REST_TOKEN: "r3-placeholder-token",
@@ -52,6 +53,34 @@ async function expectInvalid(field: string) {
 }
 
 describe("production email environment validation", () => {
+  it("accepts a separate customer receipt sender without changing the SMTP sender", async () => {
+    vi.stubEnv("ORDER_RECEIPT_FROM_EMAIL", "orders@darakit.com");
+    const { env } = await import("./env.js");
+    expect(env.ORDER_RECEIPT_FROM_EMAIL).toBe("orders@darakit.com");
+    expect(env.SMTP_FROM_EMAIL).toBe(configuration.SMTP_FROM_EMAIL);
+  });
+
+  it.each([undefined, ""])(
+    "permits an absent/empty receipt sender (%s) for SMTP fallback",
+    async (value) => {
+      vi.stubEnv("ORDER_RECEIPT_FROM_EMAIL", value);
+      const { env } = await import("./env.js");
+      expect(env.ORDER_RECEIPT_FROM_EMAIL).toBeUndefined();
+      expect(env.SMTP_FROM_EMAIL).toBe(configuration.SMTP_FROM_EMAIL);
+    },
+  );
+
+  it.each([
+    "invalid",
+    "   ",
+    '"DaraKit" <orders@darakit.com>',
+    "orders@darakit.com\r\nBcc: other@example.invalid",
+  ])("rejects an invalid receipt sender (%j)", async (value) => {
+    vi.stubEnv("ORDER_RECEIPT_FROM_EMAIL", value);
+    vi.stubEnv("SKIP_ENV_VALIDATION", "1");
+    await expectInvalid("ORDER_RECEIPT_FROM_EMAIL");
+  });
+
   it.each(["", "1"])(
     "rejects production log mode with skip flag '%s'",
     async (skip) => {
