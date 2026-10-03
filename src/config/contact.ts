@@ -6,11 +6,7 @@
  * inbox passwords, API tokens, private webhook URLs, or internal admin contacts here.
  */
 
-export type ContactSocialIconName =
-  | "instagram"
-  | "whatsapp"
-  | "facebook"
-  | "location";
+export type ContactSocialIconName = "instagram" | "whatsapp" | "facebook";
 
 type PublicSocialLink = {
   label: string;
@@ -44,10 +40,6 @@ type PublicContactConfig = {
     showContactSummary: boolean;
     onlineStoreCta: {
       enabled: boolean;
-      whatsapp: {
-        display: string;
-        href: `https://wa.me/${string}`;
-      };
     };
   };
   whatsappShortcut: {
@@ -57,46 +49,39 @@ type PublicContactConfig = {
 };
 
 const socialLinks: readonly PublicSocialLink[] = [
-  // Replace these placeholders with the client-owned public profile links before launch.
-  // Remove any platform the client does not actually use.
   {
     label: "Instagram",
-    href: "https://www.instagram.com/",
+    href: "https://www.instagram.com/darakit_store/",
     icon: "instagram",
   },
   {
     label: "WhatsApp",
-    href: "https://wa.me/970000000000",
+    href: "https://wa.me/970599355107",
     icon: "whatsapp",
   },
   {
     label: "Facebook",
-    href: "https://www.facebook.com/",
+    href: "https://www.facebook.com/profile.php?id=61595079028138",
     icon: "facebook",
-  },
-  {
-    label: "Location",
-    href: "https://www.google.com/maps",
-    icon: "location",
   },
 ];
 
 export const contactConfig = {
   email: {
-    address: "support@example.com",
-    href: "mailto:support@example.com",
+    address: "support@darakit.com",
+    href: "mailto:support@darakit.com",
   },
   phone: {
-    display: "+970000000000",
-    href: "tel:+970000000000",
+    display: "+970599355107",
+    href: "tel:+970599355107",
   },
   whatsapp: {
-    display: "+970000000000",
-    href: "https://wa.me/970000000000",
+    display: "+970599355107",
+    href: "https://wa.me/970599355107",
   },
   supportHours: {
-    en: "We reply to support questions as soon as possible during normal working days.",
-    ar: "بنرد على استفساراتكم بأقرب وقت خلال أيام الدوام.",
+    en: "You can message us anytime. Responses may not be immediate.",
+    ar: "يمكنك مراسلتنا في أي وقت. قد لا يكون الرد فورياً.",
   },
   contactPage: {
     description: {
@@ -108,10 +93,6 @@ export const contactConfig = {
     showContactSummary: true,
     onlineStoreCta: {
       enabled: false,
-      whatsapp: {
-        display: "+970599355107",
-        href: "https://wa.me/970599355107",
-      },
     },
   },
   whatsappShortcut: {

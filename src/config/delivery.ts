@@ -46,6 +46,7 @@ function defineDeliveryConfig<
   return config;
 }
 
+// Existing prices are provisional pending owner confirmation; preserve keys and fees.
 export const deliveryConfig = defineDeliveryConfig({
   currency: {
     code: "NIS",
@@ -60,14 +61,14 @@ export const deliveryConfig = defineDeliveryConfig({
   },
   method: {
     labels: {
-      en: "Third-party delivery company or another arrangement confirmed by the store",
-      ar: "شركة توصيل خارجية أو ترتيب توصيل آخر يؤكده المتجر",
+      en: "Delivery arrangements are coordinated with the store",
+      ar: "يتم تنسيق ترتيبات التوصيل مع المتجر",
     },
   },
   estimatedDuration: {
     labels: {
-      en: "Usually 1–2 days after order confirmation, unless the store tells you otherwise",
-      ar: "عادة من يوم إلى يومين بعد تأكيد الطلب، إلا إذا أخبرك المتجر بغير ذلك",
+      en: "Contact us to coordinate delivery timing after order confirmation",
+      ar: "تواصل معنا لتنسيق موعد التوصيل بعد تأكيد الطلب",
     },
   },
   defaultAreaKey: "west_bank_cities",
@@ -78,16 +79,16 @@ export const deliveryConfig = defineDeliveryConfig({
       requiresCustomerAgreement: true,
       labels: {
         en: {
-          label: "Nablus receive point",
-          note: "Free receive/pickup option in Nablus. The customer must agree or coordinate with the store owner on WhatsApp before receiving the order.",
+          label: "Nablus collection point by prior arrangement",
+          note: "Collection at a point in Nablus by prior arrangement on WhatsApp, with no collection fee. For home delivery in Nablus, select West Bank cities.",
           agreementLabel:
-            "I understand this is a free receive/pickup option in Nablus and I must agree or coordinate with the store owner on WhatsApp before receiving the order.",
+            "I understand this is collection at a point in Nablus, and I must arrange it with the store on WhatsApp before collecting my order.",
         },
         ar: {
-          label: "نقطة استلام في نابلس",
-          note: "خيار استلام مجاني في نابلس. يجب على الزبون الموافقة أو التنسيق مع صاحب المتجر عبر واتساب قبل استلام الطلب.",
+          label: "نقطة استلام في نابلس بترتيب مسبق",
+          note: "استلام من نقطة في نابلس بترتيب مسبق عبر واتساب، دون رسوم استلام. للتوصيل إلى المنزل في نابلس، اختر مدن الضفة الغربية.",
           agreementLabel:
-            "أفهم أن هذا خيار استلام مجاني في نابلس ويجب أن أوافق أو أنسق مع صاحب المتجر عبر واتساب قبل استلام الطلب.",
+            "أفهم أن هذا استلام من نقطة في نابلس، ويجب أن أنسق مع المتجر عبر واتساب قبل استلام طلبي.",
         },
       },
     },

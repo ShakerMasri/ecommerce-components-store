@@ -4,6 +4,7 @@ import { policyConfig } from "~/config/policies";
 import { storeConfig } from "~/config/store";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/shipping" },
   title: `${policyConfig.locales.en.pages.shipping.title} | ${storeConfig.name}`,
   description: policyConfig.locales.en.pages.shipping.description,
 };

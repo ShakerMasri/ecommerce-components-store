@@ -5,6 +5,7 @@ import { LegalBusinessDetails } from "~/components/legal/LegalBusinessDetails";
 import { LegalPage } from "~/components/legal/LegalPage";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
 import type { LegalPageKey } from "~/lib/translations";
+import { contactConfig } from "~/config/contact";
 
 type LegalPolicyClientProps = {
   pageKey: LegalPageKey;
@@ -25,6 +26,34 @@ export function LegalPolicyClient({ pageKey }: LegalPolicyClientProps) {
       {pageKey === "terms" || pageKey === "contact" ? (
         <LegalBusinessDetails locale={language} />
       ) : null}
+
+      <nav aria-label={t.footer.contactTitle} className="flex flex-wrap gap-4">
+        <a
+          href={contactConfig.whatsapp.href}
+          className="inline-flex min-h-11 items-center gap-2 underline"
+        >
+          {t.footer.whatsapp}:{" "}
+          <bdi dir="ltr">{contactConfig.whatsapp.display}</bdi>
+        </a>
+        {pageKey !== "returns" ? (
+          <>
+            <a
+              href={contactConfig.phone.href}
+              className="inline-flex min-h-11 items-center gap-2 underline"
+            >
+              {t.footer.phone}:{" "}
+              <bdi dir="ltr">{contactConfig.phone.display}</bdi>
+            </a>
+            <a
+              href={contactConfig.email.href}
+              className="inline-flex min-h-11 items-center gap-2 underline"
+            >
+              {t.footer.email}:{" "}
+              <bdi dir="ltr">{contactConfig.email.address}</bdi>
+            </a>
+          </>
+        ) : null}
+      </nav>
 
       {page.sections.map((section) => (
         <section key={section.title}>

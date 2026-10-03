@@ -70,21 +70,25 @@ export function Header() {
         <Link
           href="/"
           className="min-w-0 rounded-md text-[var(--ink)]"
-          aria-label="Darakit home"
+          aria-label="DaraKit home"
         >
           <span className="block text-base leading-snug font-bold sm:text-lg">
             <Image
-              src={theme === "dark" ? "/favicon.svg" : "/darakit-icon-light.svg"}
-              alt="Darakit home"
+              src={
+                theme === "dark" ? "/favicon.svg" : "/darakit-icon-light.svg"
+              }
+              alt="DaraKit home"
               width={44}
               height={44}
               className="h-11 w-11 sm:hidden"
             />
             <Image
               src={
-                theme === "dark" ? "/darakit-logo.svg" : "/darakit-logo-light.svg"
+                theme === "dark"
+                  ? "/darakit-logo.svg"
+                  : "/darakit-logo-light.svg"
               }
-              alt="Darakit home"
+              alt="DaraKit home"
               width={1536}
               height={269}
               className="hidden h-11 w-40 object-contain sm:block"

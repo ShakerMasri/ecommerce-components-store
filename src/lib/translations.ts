@@ -59,7 +59,6 @@ export type TranslationDictionary = {
     socialLinks: string;
     openSocialLink: string;
     legalLinksLabel: string;
-    locationNote: string;
     onlineStoreCtaTitle: string;
     onlineStoreCtaDescription: string;
     onlineStoreCtaAction: string;
@@ -761,20 +760,17 @@ export const translations: Record<Language, TranslationDictionary> = {
     },
     footer: {
       rights: "All rights reserved.",
-      description:
-        "Electronic components for circuits, prototypes and university projects.",
+      description: storeConfig.locales.en.description,
       contactTitle: "Contact us",
       whatsapp: "WhatsApp",
       phone: "Phone",
       email: "Email",
-      socialLinks: "Social and location links",
+      socialLinks: "Social links",
       openSocialLink: "Open contact link:",
       legalLinksLabel: "Store policies and contact links",
-      locationNote:
-        "Use the location icon to find the store or pickup point. Contact us on WhatsApp or by phone to confirm delivery or pickup details.",
-      onlineStoreCtaTitle: "Want an online store for your business?",
+      onlineStoreCtaTitle: "Questions about our products?",
       onlineStoreCtaDescription:
-        "Show your products, offer size and color options, and let customers order easily with cash on delivery.",
+        "Contact us about components, IoT supplies and student project kits.",
       onlineStoreCtaAction: "Chat with us on WhatsApp",
     },
     whatsappShortcut: {
@@ -1363,7 +1359,7 @@ export const translations: Record<Language, TranslationDictionary> = {
         categories: "Categories",
         createProduct: "Create product",
         createProductDescription:
-          "Keep this closed during daily stock work. Open it only when adding a new clothing item.",
+          "Keep this closed during daily stock work. Open it only when adding a new product.",
         addProduct: "Add product",
         hideCreateProduct: "Hide form",
         manageCategories: "Manage categories",
@@ -1551,20 +1547,17 @@ export const translations: Record<Language, TranslationDictionary> = {
     },
     footer: {
       rights: "جميع الحقوق محفوظة.",
-      description:
-        "مكوّنات إلكترونية للدوائر والنماذج الأولية والمشاريع الجامعية.",
+      description: storeConfig.locales.ar.description,
       contactTitle: "تواصل معنا",
       whatsapp: "واتساب",
       phone: "الهاتف",
       email: "البريد الإلكتروني",
-      socialLinks: "روابط التواصل والموقع",
+      socialLinks: "روابط التواصل",
       openSocialLink: "افتح رابط التواصل:",
       legalLinksLabel: "سياسات المتجر وروابط التواصل",
-      locationNote:
-        "اضغط على أيقونة الموقع للوصول للمتجر أو نقطة الاستلام. تفاصيل التوصيل أو الاستلام بنأكدها معك على واتساب أو الهاتف.",
-      onlineStoreCtaTitle: "بدك متجر إلكتروني لمشروعك؟",
+      onlineStoreCtaTitle: "عندك سؤال عن منتجاتنا؟",
       onlineStoreCtaDescription:
-        "اعرض منتجاتك وخيارات المقاسات والألوان، وخلي الزبائن يطلبوا بسهولة مع الدفع عند الاستلام.",
+        "تواصل معنا بشأن المكوّنات ومستلزمات إنترنت الأشياء وأطقم المشاريع الطلابية.",
       onlineStoreCtaAction: "احكي معنا على واتساب",
     },
     whatsappShortcut: {
@@ -2143,7 +2136,7 @@ export const translations: Record<Language, TranslationDictionary> = {
         categories: "التصنيفات",
         createProduct: "إنشاء منتج",
         createProductDescription:
-          "أبقِ هذا النموذج مغلقاً أثناء تحديث المخزون اليومي. افتحه فقط عند إضافة قطعة ملابس جديدة.",
+          "أبقِ هذا النموذج مغلقاً أثناء تحديث المخزون اليومي. افتحه فقط عند إضافة منتج جديد.",
         addProduct: "إضافة منتج",
         hideCreateProduct: "إخفاء النموذج",
         manageCategories: "إدارة التصنيفات",

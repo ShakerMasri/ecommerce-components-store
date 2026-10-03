@@ -70,9 +70,10 @@ type DeliveryAreaConfig = (typeof deliveryConfig.areas)[number];
 
 const englishStoreName = storeConfig.locales.en.name;
 const arabicStoreName = storeConfig.locales.ar.name;
-const supportPhone = contactConfig.phone.display;
-const supportWhatsapp = contactConfig.whatsapp.display;
-const supportEmail = contactConfig.email.address;
+// Isolate contact values in prose as well as links so RTL keeps '+' before the number.
+const supportPhone = `\u2066${contactConfig.phone.display}\u2069`;
+const supportWhatsapp = `\u2066${contactConfig.whatsapp.display}\u2069`;
+const supportEmail = `\u2066${contactConfig.email.address}\u2069`;
 const englishSupportHours = contactConfig.supportHours.en;
 const arabicSupportHours = contactConfig.supportHours.ar;
 const englishContactPageDescription = contactConfig.contactPage.description.en;
@@ -128,7 +129,7 @@ export const policyConfig = definePublicPoliciesConfig({
       common: {
         policyBadge: "Store policy",
         lastUpdatedLabel: "Last updated",
-        lastUpdatedDate: "June 18, 2026",
+        lastUpdatedDate: "October 3, 2026",
         usefulLinks: "Useful links",
         footerLinks: {
           terms: "Terms",
@@ -157,7 +158,7 @@ export const policyConfig = definePublicPoliciesConfig({
             {
               title: "1. About the store",
               paragraphs: [
-                `${englishStoreName} is an ecommerce store for physical products. Product categories, delivery rules, and legal wording must be reviewed and customized before each client launch.`,
+                `${englishStoreName} offers electronic components, IoT supplies and student project kits for hardware projects.`,
               ],
             },
             {
@@ -286,8 +287,8 @@ export const policyConfig = definePublicPoliciesConfig({
             {
               title: "1. Delivery and receive areas",
               paragraphs: [
-                `The store currently supports these delivery and receive options: ${englishDeliveryAreaList}.`,
-                "A free receive/pickup option may require customer agreement or coordination with the store before the order is prepared.",
+                `Checkout offers these delivery and collection options: ${englishDeliveryAreaList}. Contact us to confirm arrangements for your order.`,
+                deliveryConfig.areas[0].labels.en.note,
               ],
             },
             {
@@ -299,9 +300,7 @@ export const policyConfig = definePublicPoliciesConfig({
             },
             {
               title: "3. Estimated delivery time",
-              paragraphs: [
-                `${englishEstimatedDeliveryDuration}.`,
-              ],
+              paragraphs: [`${englishEstimatedDeliveryDuration}.`],
             },
             {
               title: "4. Delivery prices",
@@ -326,25 +325,25 @@ export const policyConfig = definePublicPoliciesConfig({
               title: "1. Return and replacement rule",
               paragraphs: [
                 "Return or replacement requests are accepted when a product arrives damaged, defective, incorrect, materially different from its description, or is delivered after the agreed time where applicable.",
-                "For visible delivery damage or an incorrect item, contact the store within 2 days so the issue can be documented and investigated promptly. This reporting period does not remove any mandatory rights available under applicable law.",
+                "For visible delivery damage or an incorrect item, contact us on WhatsApp with your order details and a description of the issue. Your rights under applicable law remain unaffected.",
               ],
             },
             {
-              title: "2. Items that cannot be returned",
+              title: "2. Product condition",
               paragraphs: [
-                "Items cannot be returned if they were used, damaged by the customer, or returned without a valid issue.",
+                "Contact us to discuss the product’s condition and the reason for your return request. Opening or using a product does not remove rights relating to a defect or nonconformity under applicable law.",
               ],
             },
             {
               title: "3. Return shipping",
               paragraphs: [
-                "If the return is accepted because of store or shipping-company damage, return shipping will be handled by the store or the shipping company.",
+                "Contact us on WhatsApp to coordinate return shipping for your request, subject to applicable rights.",
               ],
             },
             {
-              title: "4. Refund method",
+              title: "4. Refund requests",
               paragraphs: [
-                "Refunds are handled manually using a method agreed between the customer and the store.",
+                "For refund requests, contact us on WhatsApp to discuss your order and the next steps.",
               ],
             },
             {
@@ -352,7 +351,7 @@ export const policyConfig = definePublicPoliciesConfig({
               paragraphs: [
                 "If a product includes a manufacturer or store warranty, its duration, scope, exclusions, and claim method must be stated on the product page or in a separate document supplied to the customer.",
                 "A product is not represented as having a warranty unless one is clearly stated. This does not remove rights relating to defective, damaged, incorrect, late-delivered, or nonconforming products under applicable law.",
-                "Maintenance and technical support apply only where relevant to the nature of the product. For clothing, support generally covers order, size or color, delivery, defect, return, and replacement assistance.",
+                "Contact us with questions about product details, orders, delivery, defects, returns or replacements. Ask about any product-specific maintenance or technical support before ordering.",
               ],
             },
             {
@@ -373,7 +372,7 @@ export const policyConfig = definePublicPoliciesConfig({
                 `WhatsApp: ${supportWhatsapp}.`,
                 `Phone: ${supportPhone}.`,
                 `Support email: ${supportEmail}.`,
-                `Support hours: ${englishSupportHours}`,
+                `Messaging: ${englishSupportHours}`,
               ],
             },
             {
@@ -387,7 +386,7 @@ export const policyConfig = definePublicPoliciesConfig({
               title: "3. Complaint follow-up",
               paragraphs: [
                 "The store will review the complaint, request any missing information, and follow up using the contact channel provided by the customer.",
-                "The response and resolution depend on the issue and applicable law. This template does not promise a fixed response period unless the client adopts and publishes one.",
+                "Response and resolution times depend on the issue. You can message us anytime; responses may not be immediate.",
                 "If the complaint is not resolved, the customer may contact the competent Palestinian consumer-protection or ecommerce authority.",
               ],
             },
@@ -399,7 +398,7 @@ export const policyConfig = definePublicPoliciesConfig({
       common: {
         policyBadge: "سياسة المتجر",
         lastUpdatedLabel: "آخر تحديث",
-        lastUpdatedDate: "18 يونيو 2026",
+        lastUpdatedDate: "3 أكتوبر 2026",
         usefulLinks: "روابط مفيدة",
         footerLinks: {
           terms: "الشروط",
@@ -428,7 +427,7 @@ export const policyConfig = definePublicPoliciesConfig({
             {
               title: "1. عن المتجر",
               paragraphs: [
-                `${arabicStoreName} هو متجر إلكتروني لبيع منتجات فعلية. يجب مراجعة وتخصيص فئات المنتجات وقواعد التوصيل والنصوص القانونية قبل إطلاق كل متجر لعميل جديد.`,
+                `${arabicStoreName} متجر للمكوّنات الإلكترونية ومستلزمات إنترنت الأشياء وأطقم المشاريع الطلابية للمشاريع العملية في الإلكترونيات.`,
               ],
             },
             {
@@ -555,8 +554,8 @@ export const policyConfig = definePublicPoliciesConfig({
             {
               title: "1. مناطق التوصيل والاستلام",
               paragraphs: [
-                `يدعم المتجر حالياً خيارات التوصيل والاستلام التالية: ${arabicDeliveryAreaList}.`,
-                "قد يتطلب خيار الاستلام المجاني موافقة العميل أو التنسيق مع المتجر قبل تجهيز الطلب.",
+                `تتوفر خيارات التوصيل والاستلام التالية عند إتمام الطلب: ${arabicDeliveryAreaList}. تواصل معنا لتأكيد ترتيبات طلبك.`,
+                deliveryConfig.areas[0].labels.ar.note,
               ],
             },
             {
@@ -568,9 +567,7 @@ export const policyConfig = definePublicPoliciesConfig({
             },
             {
               title: "3. مدة التوصيل المتوقعة",
-              paragraphs: [
-                `${arabicEstimatedDeliveryDuration}.`,
-              ],
+              paragraphs: [`${arabicEstimatedDeliveryDuration}.`],
             },
             {
               title: "4. أسعار التوصيل",
@@ -595,25 +592,25 @@ export const policyConfig = definePublicPoliciesConfig({
               title: "1. قاعدة الإرجاع والاستبدال",
               paragraphs: [
                 "يتم قبول طلبات الإرجاع أو الاستبدال إذا وصل المنتج تالفاً أو معيباً أو خاطئاً أو مختلفاً بشكل جوهري عن وصفه، أو إذا تم تسليمه بعد الموعد المتفق عليه حيث ينطبق ذلك.",
-                "في حال وجود تلف ظاهر أثناء التوصيل أو استلام منتج خاطئ، تواصل مع المتجر خلال يومين للمساعدة في توثيق المشكلة ومتابعتها بسرعة. لا تلغي هذه المدة أي حقوق إلزامية يقررها القانون النافذ.",
+                "في حال وجود تلف ظاهر أثناء التوصيل أو استلام منتج خاطئ، تواصل معنا عبر واتساب مع تفاصيل الطلب ووصف المشكلة. تبقى حقوقك بموجب القانون النافذ محفوظة.",
               ],
             },
             {
-              title: "2. منتجات لا يمكن إرجاعها",
+              title: "2. حالة المنتج",
               paragraphs: [
-                "لا يمكن إرجاع المنتجات إذا تم استخدامها أو تضررت بسبب العميل أو لم يكن هناك سبب صحيح للإرجاع.",
+                "تواصل معنا لمناقشة حالة المنتج وسبب طلب الإرجاع. فتح المنتج أو استخدامه لا يلغي الحقوق المتعلقة بالعيب أو عدم المطابقة بموجب القانون النافذ.",
               ],
             },
             {
               title: "3. شحن الإرجاع",
               paragraphs: [
-                "إذا تم قبول الإرجاع بسبب خطأ من المتجر أو تلف من شركة الشحن، يتم التعامل مع تكلفة إرجاع الشحن من قبل المتجر أو شركة الشحن.",
+                "تواصل معنا عبر واتساب لتنسيق شحن الإرجاع لطلبك، مع مراعاة الحقوق المقررة قانوناً.",
               ],
             },
             {
-              title: "4. طريقة الاسترداد",
+              title: "4. طلبات الاسترداد",
               paragraphs: [
-                "يتم الاسترداد يدوياً بالطريقة التي يتم الاتفاق عليها بين العميل والمتجر.",
+                "لطلب الاسترداد، تواصل معنا عبر واتساب لمناقشة طلبك والخطوات التالية.",
               ],
             },
             {
@@ -621,7 +618,7 @@ export const policyConfig = definePublicPoliciesConfig({
               paragraphs: [
                 "إذا كان المنتج يشمل ضماناً من الشركة المصنّعة أو المتجر، فيجب توضيح مدته ونطاقه والاستثناءات وطريقة المطالبة به في صفحة المنتج أو في وثيقة مستقلة تسلّم للعميل.",
                 "لا يُعتبر المنتج مشمولاً بضمان ما لم يتم توضيح ذلك صراحة. ولا يؤثر ذلك على الحقوق المتعلقة بالمنتج المعيب أو التالف أو الخاطئ أو المتأخر أو غير المطابق وفق القانون النافذ.",
-                "تطبق الصيانة والدعم الفني فقط عندما تكون مناسبة لطبيعة المنتج. وبالنسبة للملابس، يشمل الدعم عادةً المساعدة المتعلقة بالطلب والمقاس أو اللون والتوصيل والعيوب والإرجاع والاستبدال.",
+                "تواصل معنا بشأن تفاصيل المنتج والطلبات والتوصيل والعيوب والإرجاع والاستبدال. اسأل عن أي صيانة أو دعم فني خاص بالمنتج قبل الطلب.",
               ],
             },
             {
@@ -642,7 +639,7 @@ export const policyConfig = definePublicPoliciesConfig({
                 `واتساب: ${supportWhatsapp}.`,
                 `الهاتف: ${supportPhone}.`,
                 `البريد الإلكتروني للدعم: ${supportEmail}.`,
-                `ساعات الدعم: ${arabicSupportHours}`,
+                `المراسلة: ${arabicSupportHours}`,
               ],
             },
             {
@@ -656,7 +653,7 @@ export const policyConfig = definePublicPoliciesConfig({
               title: "3. متابعة الشكوى",
               paragraphs: [
                 "يراجع المتجر الشكوى ويطلب أي معلومات ناقصة ويتابع مع العميل من خلال وسيلة التواصل التي قدمها.",
-                "تعتمد مدة الرد والحل على طبيعة المشكلة والقانون النافذ. لا يَعِد هذا القالب بمدة ثابتة ما لم يعتمد العميل مدة واضحة وينشرها.",
+                "تعتمد مدة الرد والحل على طبيعة المشكلة. يمكنك مراسلتنا في أي وقت؛ قد لا يكون الرد فورياً.",
                 "إذا لم تتم معالجة الشكوى، يمكن للعميل التواصل مع الجهة الفلسطينية المختصة بحماية المستهلك أو التجارة الإلكترونية.",
               ],
             },
