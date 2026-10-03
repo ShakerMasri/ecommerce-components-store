@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import net from "node:net";
 import { Duplex } from "node:stream";
@@ -12,6 +11,11 @@ import { buildOrderReceipt, type ReceiptOrder } from "./order-receipt";
 import { sendCustomerOrderReceiptEmail } from "./email";
 import logo from "./assets/darakit-logo.json";
 import { runCheckoutEmailWork } from "./checkout-email";
+import { generateReceiptLogo } from "../../scripts/generate-receipt-logo.mjs";
+import {
+  hashReceiptLogoSource,
+  normalizeReceiptLogoSource,
+} from "../../scripts/receipt-logo-source.mjs";
 
 const env = vi.hoisted(() => ({
   NODE_ENV: "production",
@@ -135,12 +139,46 @@ describe("Arabic customer order receipt", () => {
 
   it("bundles a PNG of the unchanged existing logo", () => {
     expect(logo.sourceSha256).toBe(
-      createHash("sha256").update(readFileSync(logo.source)).digest("hex"),
+      hashReceiptLogoSource(readFileSync(logo.source)),
     );
     const png = buildOrderReceipt(order).attachments[0]!.content;
     expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
     expect(png.readUInt32BE(16)).toBe(660);
     expect(png.readUInt32BE(20)).toBe(116);
+  });
+
+  it.each(["LF", "CRLF"])(
+    "generates identical logo provenance and approved PNG from %s source",
+    async (ending) => {
+      const lf = normalizeReceiptLogoSource(readFileSync(logo.source));
+      const source =
+        ending === "LF"
+          ? lf
+          : Buffer.from(lf.toString("utf8").replace(/\n/g, "\r\n"));
+      const generated = await generateReceiptLogo(source, logo.width);
+      expect(generated.sourceSha256).toBe(logo.sourceSha256);
+      expect(generated.base64 === logo.base64).toBe(true);
+      expect(generated.width).toBe(logo.width);
+    },
+  );
+
+  it("preserves detection of real SVG edits and changes beyond CRLF pairs", () => {
+    const source = normalizeReceiptLogoSource(readFileSync(logo.source));
+    const edited = Buffer.from(
+      source.toString("utf8").replace("<svg", '<svg data-changed="true"'),
+    );
+    expect(edited.equals(source)).toBe(false);
+    for (const changed of [
+      edited,
+      Buffer.concat([source, Buffer.from(" ")]),
+      Buffer.concat([source, Buffer.from("\r")]),
+      Buffer.concat([source, Buffer.from("\n")]),
+    ]) {
+      expect(hashReceiptLogoSource(changed)).not.toBe(logo.sourceSha256);
+    }
+    expect(
+      normalizeReceiptLogoSource(Buffer.from([255, 13, 10, 13, 32])),
+    ).toEqual(Buffer.from([255, 10, 13, 32]));
   });
 
   it.each([undefined, "orders@darakit.com"])(
