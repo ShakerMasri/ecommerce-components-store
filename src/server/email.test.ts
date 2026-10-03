@@ -17,6 +17,7 @@ const env = vi.hoisted(() => ({
   SMTP_PASSWORD: "local-test-password",
   SMTP_FROM_EMAIL: "sender@example.com",
   SMTP_FROM_NAME: "R1 Store",
+  ORDER_RECEIPT_FROM_EMAIL: undefined as string | undefined,
   ORDER_NOTIFICATION_EMAIL: "orders@example.com",
 }));
 vi.mock("~/env", () => ({ env }));
@@ -98,6 +99,7 @@ beforeEach(() => {
   env.EMAIL_DELIVERY_MODE = "smtp";
   env.SMTP_PORT = 587;
   env.SMTP_HOST = "smtp.example.invalid";
+  env.ORDER_RECEIPT_FROM_EMAIL = undefined;
   env.ORDER_NOTIFICATION_EMAIL = "orders@example.com";
   transport = createLocalTransport();
   vi.spyOn(nodemailer, "createTransport").mockReturnValue(transport);
@@ -117,6 +119,26 @@ afterEach(() => {
 });
 
 describe("email delivery with Nodemailer", () => {
+  it.each(messages)(
+    "keeps the configured SMTP sender for $name when a receipt override is present",
+    async (message) => {
+      env.ORDER_RECEIPT_FROM_EMAIL = "orders@darakit.com";
+      await message.send();
+      expect(sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+          to: message.to,
+        }),
+      );
+      const result = await sendMail.mock.results[0]!.value;
+      expect(result.envelope.from).toBe(env.SMTP_FROM_EMAIL);
+      expect(result.message.toString()).toContain(
+        `From: ${env.SMTP_FROM_NAME} <${env.SMTP_FROM_EMAIL}>`,
+      );
+      expect(result.message.toString()).not.toContain("orders@darakit.com");
+    },
+  );
+
   it.each(messages)(
     "constructs and locally delivers $name",
     async (message) => {

@@ -26,6 +26,7 @@ vi.mock("~/lib/rate-limit", () => ({
   rateLimit: async () => ({ ok: true }),
 }));
 vi.mock("~/server/email", () => ({
+  sendCustomerOrderReceiptEmail: async () => undefined,
   sendOrderNotificationEmail: async () => undefined,
 }));
 vi.mock("~/env", () => ({

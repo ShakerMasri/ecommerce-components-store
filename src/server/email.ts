@@ -1,12 +1,19 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type SendMailOptions } from "nodemailer";
 import { env } from "~/env";
 import { storeConfig } from "~/config/store";
+import { buildOrderReceipt, type ReceiptOrder } from "./order-receipt";
+import {
+  awaitEmailWithinBudget,
+  type EmailDeliveryBudget,
+} from "./checkout-email";
+import { createCheckoutSMTPTransport } from "./checkout-smtp";
 
 type SendEmailInput = {
   to: string;
   subject: string;
   text: string;
   html: string;
+  attachments?: SendMailOptions["attachments"];
 };
 
 type SendAuthEmailInput = SendEmailInput;
@@ -65,8 +72,12 @@ function maskPhone(value: string | null) {
 }
 
 async function sendEmail(
-  { to, subject, text, html }: SendEmailInput,
-  options: { logOnlyFirstUrl?: boolean } = {},
+  { to, subject, text, html, attachments }: SendEmailInput,
+  options: {
+    logOnlyFirstUrl?: boolean;
+    budget?: EmailDeliveryBudget;
+    fromEmail?: string;
+  } = {},
 ) {
   // Fail closed even if a caller supplies an unvalidated environment.
   if (env.NODE_ENV === "production" && env.EMAIL_DELIVERY_MODE !== "smtp") {
@@ -91,8 +102,10 @@ async function sendEmail(
     return;
   }
 
+  let closeCheckoutTransport: (() => void) | undefined;
   try {
-    const transporter = nodemailer.createTransport({
+    options.budget?.check();
+    const smtpOptions = {
       host: env.SMTP_HOST,
       port: env.SMTP_PORT,
       secure: env.SMTP_PORT === 465,
@@ -100,15 +113,26 @@ async function sendEmail(
         user: env.SMTP_USER,
         pass: env.SMTP_PASSWORD,
       },
-    });
+    };
+    const checkoutTransport = options.budget
+      ? createCheckoutSMTPTransport(smtpOptions, options.budget)
+      : undefined;
+    if (checkoutTransport)
+      closeCheckoutTransport = () => checkoutTransport.close?.();
+    const transporter = nodemailer.createTransport(
+      checkoutTransport ?? smtpOptions,
+    );
 
-    await transporter.sendMail({
-      from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+    const delivery = transporter.sendMail({
+      from: `"${env.SMTP_FROM_NAME}" <${options.fromEmail ?? env.SMTP_FROM_EMAIL}>`,
       to,
       subject,
       text,
       html,
+      ...(attachments ? { attachments } : {}),
     });
+    if (options.budget) await awaitEmailWithinBudget(delivery, options.budget);
+    else await delivery;
   } catch (error) {
     // Provider errors can contain credentials or message content. Do not pass
     // the original error (including its cause) to production callers/loggers.
@@ -116,6 +140,8 @@ async function sendEmail(
       throw new Error("Email delivery failed.");
     }
     throw error;
+  } finally {
+    closeCheckoutTransport?.();
   }
 }
 
@@ -123,16 +149,32 @@ export async function sendAuthEmail(input: SendAuthEmailInput) {
   await sendEmail(input, { logOnlyFirstUrl: true });
 }
 
-export async function sendOrderNotificationEmail({
-  orderId,
-  totalAmount,
-  deliveryAreaKey,
-  deliveryCity,
-  customerName,
-  customerPhone,
-  itemCount,
-  createdAt,
-}: SendOrderNotificationEmailInput) {
+export async function sendCustomerOrderReceiptEmail(
+  input: {
+    to: string;
+    order: ReceiptOrder;
+  },
+  budget?: EmailDeliveryBudget,
+) {
+  await sendEmail(
+    { to: input.to, ...buildOrderReceipt(input.order) },
+    { budget, fromEmail: env.ORDER_RECEIPT_FROM_EMAIL },
+  );
+}
+
+export async function sendOrderNotificationEmail(
+  {
+    orderId,
+    totalAmount,
+    deliveryAreaKey,
+    deliveryCity,
+    customerName,
+    customerPhone,
+    itemCount,
+    createdAt,
+  }: SendOrderNotificationEmailInput,
+  budget?: EmailDeliveryBudget,
+) {
   if (!env.ORDER_NOTIFICATION_EMAIL) {
     return;
   }
@@ -173,10 +215,13 @@ export async function sendOrderNotificationEmail({
     <p><a href="${escapeHtml(adminOrdersUrl)}">View admin orders</a></p>
   `;
 
-  await sendEmail({
-    to: env.ORDER_NOTIFICATION_EMAIL,
-    subject,
-    text,
-    html,
-  });
+  await sendEmail(
+    {
+      to: env.ORDER_NOTIFICATION_EMAIL,
+      subject,
+      text,
+      html,
+    },
+    { budget },
+  );
 }

@@ -8,12 +8,17 @@ import { prisma } from "~/lib/prisma";
 import { getReferenceMessage, logError } from "~/lib/logger";
 import { rateLimit } from "~/lib/rate-limit";
 import {
+  sendCustomerOrderReceiptEmail,
   sendOrderNotificationEmail,
   type SendOrderNotificationEmailInput,
 } from "~/server/email";
 import { auth } from "~/server/auth";
 import { getEffectiveProductPrice } from "~/server/pricing";
 import { lockCustomerCart } from "~/server/cart-lock";
+import {
+  runCheckoutEmailWork,
+  type EmailDeliveryBudget,
+} from "~/server/checkout-email";
 import {
   createOrderSchema,
   customerOrdersQuerySchema,
@@ -263,6 +268,7 @@ export async function POST(request: Request) {
       if (existingOrder) {
         return {
           order: existingOrder,
+          receiptRecipient: null,
           notification: null satisfies CreatedOrderNotification | null,
         };
       }
@@ -422,6 +428,7 @@ export async function POST(request: Request) {
 
       return {
         order: createdOrder,
+        receiptRecipient: customer.email,
         notification: {
           orderId: createdOrder.id,
           totalAmount: createdOrder.totalAmount.toString(),
@@ -435,18 +442,45 @@ export async function POST(request: Request) {
       };
     });
 
-    if (env.ORDER_NOTIFICATION_EMAIL && orderResult.notification) {
-      await sendOrderNotificationEmail(orderResult.notification).catch(
-        (error) => {
-          logError("Failed to send store owner order notification.", error, {
-            action: "orders.notifyOwner",
-            route: "/api/orders",
-            userId,
-            orderId: orderResult.order.id,
-          });
-        },
-      );
+    // One deadline for both independent sends, after commit and outside locks.
+    const emails: {
+      action: string;
+      message: string;
+      send: (budget: EmailDeliveryBudget) => Promise<void>;
+    }[] = [];
+    if (orderResult.receiptRecipient) {
+      const to = orderResult.receiptRecipient;
+      emails.push({
+        action: "orders.notifyCustomer",
+        message: "Failed to send customer order receipt.",
+        send: (budget) =>
+          sendCustomerOrderReceiptEmail(
+            { to, order: orderResult.order },
+            budget,
+          ),
+      });
     }
+    if (env.ORDER_NOTIFICATION_EMAIL && orderResult.notification) {
+      const notification = orderResult.notification;
+      emails.push({
+        action: "orders.notifyOwner",
+        message: "Failed to send store owner order notification.",
+        send: (budget) => sendOrderNotificationEmail(notification, budget),
+      });
+    }
+    const deliveries = await runCheckoutEmailWork(
+      emails.map((email) => email.send),
+    );
+    deliveries.forEach((delivery, index) => {
+      if (delivery.status === "fulfilled") return;
+      // Keep preparation/transport errors out of route logs in every environment.
+      logError(emails[index]!.message, new Error("Email delivery failed."), {
+        action: emails[index]!.action,
+        route: "/api/orders",
+        userId,
+        orderId: orderResult.order.id,
+      });
+    });
 
     return NextResponse.json({
       message:

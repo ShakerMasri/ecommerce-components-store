@@ -1,4 +1,12 @@
 import { Prisma } from "@prisma/client";
+import nodemailer from "nodemailer";
+import net from "node:net";
+import SMTPConnection from "nodemailer/lib/smtp-connection";
+import { Readable } from "node:stream";
+import type * as EmailModule from "~/server/email";
+import { setImmediate as realImmediate } from "node:timers";
+import { CHECKOUT_EMAIL_BUDGET_MS } from "~/server/checkout-email";
+import * as receiptTemplate from "~/server/order-receipt";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as RateLimitModule from "~/lib/rate-limit";
 
@@ -33,11 +41,20 @@ const mocks = vi.hoisted(() => {
     getDeliveryAreaByKey: vi.fn(),
     isDeliveryAreaKey: vi.fn(),
     sendOrderNotificationEmail: vi.fn(),
+    sendCustomerOrderReceiptEmail: vi.fn(),
     env: {
       NODE_ENV: "test",
       UPSTASH_REDIS_REST_URL: "https://example-upstash.com",
       UPSTASH_REDIS_REST_TOKEN: "test-token",
       ORDER_NOTIFICATION_EMAIL: "owner@example.com",
+      EMAIL_DELIVERY_MODE: "smtp",
+      SMTP_HOST: "smtp.example.invalid",
+      SMTP_PORT: 587,
+      SMTP_USER: "fixture",
+      SMTP_PASSWORD: "fixture",
+      SMTP_FROM_EMAIL: "support@darakit.com",
+      SMTP_FROM_NAME: "DaraKit",
+      APP_URL: "https://darakit.example.invalid",
     },
     tx,
     prisma: {
@@ -68,7 +85,10 @@ vi.mock("@upstash/ratelimit", () => ({
   },
 }));
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
 
 vi.mock("~/lib/csrf", () => ({
   validateSameOriginRequest: mocks.validateSameOriginRequest,
@@ -85,6 +105,7 @@ vi.mock("~/env", () => ({
 
 vi.mock("~/server/email", () => ({
   sendOrderNotificationEmail: mocks.sendOrderNotificationEmail,
+  sendCustomerOrderReceiptEmail: mocks.sendCustomerOrderReceiptEmail,
 }));
 
 vi.mock("~/lib/prisma", () => ({
@@ -148,6 +169,7 @@ describe("customer order route", () => {
       expect(mocks.tx.productVariant.updateMany).not.toHaveBeenCalled();
       expect(mocks.tx.cartItem.deleteMany).not.toHaveBeenCalled();
       expect(mocks.sendOrderNotificationEmail).not.toHaveBeenCalled();
+      expect(mocks.sendCustomerOrderReceiptEmail).not.toHaveBeenCalled();
     },
   );
 
@@ -167,6 +189,7 @@ describe("customer order route", () => {
     expect(mocks.tx.product.updateMany).not.toHaveBeenCalled();
     expect(mocks.tx.productVariant.updateMany).not.toHaveBeenCalled();
     expect(mocks.tx.cartItem.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.sendCustomerOrderReceiptEmail).not.toHaveBeenCalled();
   });
 
   beforeEach(() => {
@@ -192,6 +215,7 @@ describe("customer order route", () => {
     mocks.isDeliveryAreaKey.mockReturnValue(true);
     mocks.env.ORDER_NOTIFICATION_EMAIL = "owner@example.com";
     mocks.sendOrderNotificationEmail.mockResolvedValue(undefined);
+    mocks.sendCustomerOrderReceiptEmail.mockResolvedValue(undefined);
 
     mocks.prisma.$transaction.mockImplementation(
       async (callback: (tx: typeof mocks.tx) => Promise<unknown>) => {
@@ -473,6 +497,7 @@ describe("customer order route", () => {
         expect.objectContaining({
           customerPhone: "+970599000000",
         }),
+        expect.anything(),
       );
       expect(mocks.tx.order.create.mock.invocationCallOrder[0]).toBeLessThan(
         mocks.tx.user.update.mock.invocationCallOrder[0]!,
@@ -516,6 +541,7 @@ describe("customer order route", () => {
 
     expect(response.status).toBe(400);
     expect(mocks.tx.user.update).not.toHaveBeenCalled();
+    expect(mocks.sendCustomerOrderReceiptEmail).not.toHaveBeenCalled();
   });
 
   it("creates a pending order and reserves selected option stock", async () => {
@@ -575,16 +601,19 @@ describe("customer order route", () => {
 
     expect(createPayload?.data.deliveryPrice.toString()).toBe("20");
     expect(createPayload?.data.totalAmount.toString()).toBe("100");
-    expect(mocks.sendOrderNotificationEmail).toHaveBeenCalledWith({
-      orderId: "order-1",
-      totalAmount: "100",
-      deliveryAreaKey: "west_bank_cities",
-      deliveryCity: "Ramallah",
-      customerName: "Test Customer",
-      customerPhone: "+970599000000",
-      itemCount: 2,
-      createdAt: new Date("2026-05-24T10:00:00.000Z"),
-    });
+    expect(mocks.sendOrderNotificationEmail).toHaveBeenCalledWith(
+      {
+        orderId: "order-1",
+        totalAmount: "100",
+        deliveryAreaKey: "west_bank_cities",
+        deliveryCity: "Ramallah",
+        customerName: "Test Customer",
+        customerPhone: "+970599000000",
+        itemCount: 2,
+        createdAt: new Date("2026-05-24T10:00:00.000Z"),
+      },
+      expect.anything(),
+    );
   });
 
   it("snapshots selected variant details for variant cart items", async () => {
@@ -738,6 +767,262 @@ describe("customer order route", () => {
     expect(response.status).toBe(200);
     expect(body.order.status).toBe("PENDING");
     expect(mocks.sendOrderNotificationEmail).toHaveBeenCalledTimes(1);
+    expect(mocks.sendCustomerOrderReceiptEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("awaits the receipt for the verified database email after commit, using only persisted order data", async () => {
+    mocks.auth.mockResolvedValue({
+      user: { id: "user-1", email: "stale@example.com" },
+    });
+    const persisted = await mocks.tx.order.create();
+    persisted.items[0].productNameAtPurchase = "لوحة تجريبية";
+    persisted.items[0].selectedOptionLabel = "5 فولت";
+    persisted.totalAmount = new Prisma.Decimal("91.25");
+    mocks.tx.order.create.mockResolvedValue(persisted);
+    let committed = false;
+    mocks.prisma.$transaction.mockImplementation(async (callback) => {
+      const result = await callback(mocks.tx);
+      expect(mocks.sendCustomerOrderReceiptEmail).not.toHaveBeenCalled();
+      committed = true;
+      return result;
+    });
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let started!: () => void;
+    const receiptStarted = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    mocks.sendCustomerOrderReceiptEmail.mockImplementationOnce(async () => {
+      expect(committed).toBe(true);
+      started();
+      await pending;
+    });
+    let finished = false;
+    const checkout = POST(createRequest(createOrderInput())).then(
+      (response) => {
+        finished = true;
+        return response;
+      },
+    );
+    await receiptStarted;
+    expect(finished).toBe(false);
+    expect(mocks.sendCustomerOrderReceiptEmail).toHaveBeenCalledWith(
+      {
+        to: "customer@example.com",
+        order: persisted,
+      },
+      expect.anything(),
+    );
+    release();
+    expect((await checkout).status).toBe(200);
+  });
+
+  it.each([false, true])(
+    "keeps checkout and owner delivery independent when receipt fails (owner failure: %s)",
+    async (ownerFails) => {
+      const log = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+      mocks.sendCustomerOrderReceiptEmail.mockRejectedValueOnce(
+        new Error("private SMTP body"),
+      );
+      if (ownerFails)
+        mocks.sendOrderNotificationEmail.mockRejectedValueOnce(
+          new Error("Email delivery failed."),
+        );
+      const response = await POST(createRequest(createOrderInput()));
+      expect(response.status).toBe(200);
+      expect((await response.json()).order).toMatchObject({
+        id: "order-1",
+        status: "PENDING",
+        totalAmount: "100",
+      });
+      expect(mocks.tx.order.create).toHaveBeenCalledTimes(1);
+      expect(mocks.tx.cartItem.deleteMany).toHaveBeenCalledTimes(1);
+      expect(mocks.sendOrderNotificationEmail).toHaveBeenCalledTimes(1);
+      expect(JSON.stringify(log.mock.calls)).not.toContain("private SMTP body");
+    },
+  );
+
+  it.each(["customer", "owner", "both"])(
+    "bounds checkout when %s transport stalls and cleans only owned resources",
+    async (stalled) => {
+      vi.useFakeTimers();
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const actual =
+        await vi.importActual<typeof EmailModule>("~/server/email");
+      mocks.sendCustomerOrderReceiptEmail.mockImplementation(
+        actual.sendCustomerOrderReceiptEmail,
+      );
+      mocks.sendOrderNotificationEmail.mockImplementation(
+        actual.sendOrderNotificationEmail,
+      );
+      const sockets: net.Socket[] = [];
+      const unrelated = new net.Socket();
+      vi.spyOn(net, "createConnection").mockImplementation(() => {
+        const socket = new net.Socket();
+        sockets.push(socket);
+        queueMicrotask(() => socket.emit("connect"));
+        return socket;
+      });
+      const connections: SMTPConnection[] = [];
+      const streams: Readable[] = [];
+      const close = vi.spyOn(SMTPConnection.prototype, "close");
+      const rejectLate: ((error: Error) => void)[] = [];
+      let ready!: () => void;
+      const started = new Promise<void>((resolve) => {
+        ready = resolve;
+      });
+      vi.spyOn(SMTPConnection.prototype, "connect").mockImplementation(
+        function (this: SMTPConnection, callback) {
+          connections.push(this);
+          expect(this.options).toMatchObject({
+            connectionTimeout: 2000,
+            greetingTimeout: 2000,
+            socketTimeout: 3000,
+            secure: false,
+          });
+          callback?.();
+        },
+      );
+      vi.spyOn(SMTPConnection.prototype, "send").mockImplementation(
+        (_envelope, message, callback) => {
+          const index = streams.length;
+          expect(message).toBeInstanceOf(Readable);
+          streams.push(message as Readable);
+          if (
+            stalled === "both" ||
+            (index === 0 ? stalled === "customer" : stalled === "owner")
+          ) {
+            rejectLate.push((error) =>
+              callback(error, {
+                accepted: [],
+                rejected: [],
+                ehlo: [],
+                envelopeTime: 0,
+                messageTime: 0,
+                messageSize: 0,
+                response: "",
+              }),
+            );
+          } else {
+            callback(null, {
+              accepted: ["fixture@example.invalid"],
+              rejected: [],
+              ehlo: [],
+              envelopeTime: 0,
+              messageTime: 0,
+              messageSize: 0,
+              response: "250 queued",
+            });
+          }
+          if (streams.length === 2) ready();
+        },
+      );
+      const lateErrors: unknown[] = [];
+      const onUnhandled = (error: unknown) => lateErrors.push(error);
+      process.on("unhandledRejection", onUnhandled);
+      try {
+        let finished = false;
+        const checkout = POST(createRequest(createOrderInput())).then(
+          (response) => {
+            finished = true;
+            return response;
+          },
+        );
+        await started;
+        expect(mocks.tx.cartItem.deleteMany).toHaveBeenCalledTimes(1);
+        expect(mocks.sendOrderNotificationEmail).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(CHECKOUT_EMAIL_BUDGET_MS - 1);
+        expect(finished).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        const response = await checkout;
+        expect(response.status).toBe(200);
+        expect((await response.json()).order.id).toBe("order-1");
+        expect(mocks.tx.order.create).toHaveBeenCalledTimes(1);
+        for (const socket of sockets) expect(socket.destroyed).toBe(true);
+        expect(close).toHaveBeenCalledTimes(2);
+        for (const connection of connections)
+          expect(connection.destroyed).toBe(true);
+        for (const stream of streams) expect(stream.destroyed).toBe(true);
+        expect(unrelated.destroyed).toBe(false);
+        expect(vi.getTimerCount()).toBe(0);
+        rejectLate.forEach((reject) =>
+          reject(new Error("late private provider failure")),
+        );
+        await new Promise<void>((resolve) => realImmediate(resolve));
+        expect(lateErrors).toEqual([]);
+      } finally {
+        process.removeListener("unhandledRejection", onUnhandled);
+        unrelated.destroy();
+        sockets.forEach((socket) => socket.destroy());
+      }
+    },
+  );
+
+  it.each(["template", "attachment"])(
+    "keeps checkout successful after %s preparation fails",
+    async (stage) => {
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const actual =
+        await vi.importActual<typeof EmailModule>("~/server/email");
+      mocks.sendCustomerOrderReceiptEmail.mockImplementation(
+        actual.sendCustomerOrderReceiptEmail,
+      );
+      const realBuild = receiptTemplate.buildOrderReceipt;
+      vi.spyOn(receiptTemplate, "buildOrderReceipt").mockImplementationOnce(
+        (order) => {
+          if (stage === "template")
+            throw new Error("template preparation failed");
+          const mail = realBuild(order);
+          Object.defineProperty(mail, "attachments", {
+            enumerable: true,
+            get: () => {
+              throw new Error("attachment preparation failed");
+            },
+          });
+          return mail;
+        },
+      );
+      const create = vi.spyOn(nodemailer, "createTransport");
+      const response = await POST(createRequest(createOrderInput()));
+      expect(response.status).toBe(200);
+      expect((await response.json()).order.id).toBe("order-1");
+      expect(mocks.tx.cartItem.deleteMany).toHaveBeenCalledTimes(1);
+      expect(mocks.sendOrderNotificationEmail).toHaveBeenCalledTimes(1);
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    "EMPTY_CART",
+    "INSUFFICIENT_STOCK",
+    "EMAIL_NOT_VERIFIED",
+    "commit failed",
+  ])("does not email when checkout fails: %s", async (reason) => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.prisma.$transaction.mockRejectedValueOnce(new Error(reason));
+    expect((await POST(createRequest(createOrderInput()))).status).not.toBe(
+      200,
+    );
+    expect(mocks.sendCustomerOrderReceiptEmail).not.toHaveBeenCalled();
+    expect(mocks.sendOrderNotificationEmail).not.toHaveBeenCalled();
+  });
+
+  it("does not email a unique-key race fallback", async () => {
+    const persisted = await mocks.tx.order.create();
+    mocks.prisma.$transaction.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError("duplicate", {
+        code: "P2002",
+        clientVersion: "6.6.0",
+      }),
+    );
+    mocks.prisma.order.findUnique.mockResolvedValueOnce(persisted);
+    expect((await POST(createRequest(createOrderInput()))).status).toBe(200);
+    expect(mocks.sendCustomerOrderReceiptEmail).not.toHaveBeenCalled();
+    expect(mocks.sendOrderNotificationEmail).not.toHaveBeenCalled();
   });
 
   it("skips owner notification when no notification recipient is configured", async () => {
@@ -747,6 +1032,7 @@ describe("customer order route", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.sendOrderNotificationEmail).not.toHaveBeenCalled();
+    expect(mocks.sendCustomerOrderReceiptEmail).toHaveBeenCalledTimes(1);
   });
 
   it("does not send an owner notification for an idempotent existing order response", async () => {
@@ -773,6 +1059,7 @@ describe("customer order route", () => {
     expect(mocks.tx.order.create).not.toHaveBeenCalled();
     expect(mocks.tx.user.update).not.toHaveBeenCalled();
     expect(mocks.sendOrderNotificationEmail).not.toHaveBeenCalled();
+    expect(mocks.sendCustomerOrderReceiptEmail).not.toHaveBeenCalled();
   });
 
   it("rejects client-supplied delivery prices", async () => {
@@ -816,6 +1103,7 @@ describe("customer order route", () => {
     expect((await POST(createRequest(createOrderInput()))).status).toBe(200);
     expect(mocks.tx.productVariant.updateMany).not.toHaveBeenCalled();
     expect(mocks.tx.order.create).not.toHaveBeenCalled();
+    expect(mocks.sendCustomerOrderReceiptEmail).toHaveBeenCalledTimes(1);
   });
   it("snapshots a neutral label without trusting browser price or labels", async () => {
     const items = await mocks.tx.cartItem.findMany();
