@@ -18,6 +18,70 @@ type SendEmailInput = {
 
 type SendAuthEmailInput = SendEmailInput;
 
+// Exact allowlists only: provider messages and arbitrary command strings may
+// contain credentials, recipients or tokens and must never reach logs.
+const diagnosticCodes = new Set([
+  "ECONNECTION",
+  "ESOCKET",
+  "ETIMEOUT",
+  "ETIMEDOUT",
+  "EAUTH",
+  "ETLS",
+  "EDNS",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EPIPE",
+  "EENVELOPE",
+  "EMESSAGE",
+  "ESTREAM",
+  "EPROTOCOL",
+  "CERT_HAS_EXPIRED",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+  "ERR_TLS_CERT_ALTNAME_INVALID",
+]);
+const diagnosticCommands = new Set([
+  "CONN",
+  "EHLO",
+  "HELO",
+  "STARTTLS",
+  "AUTH",
+  "AUTH PLAIN",
+  "AUTH LOGIN",
+  "AUTH XOAUTH2",
+  "MAIL FROM",
+  "RCPT TO",
+  "DATA",
+  "QUIT",
+]);
+
+function authEmailFailureDiagnostic(error: unknown) {
+  const fields =
+    typeof error === "object" && error !== null
+      ? (error as Record<string, unknown>)
+      : {};
+  return {
+    code:
+      typeof fields.code === "string" && diagnosticCodes.has(fields.code)
+        ? fields.code
+        : "UNKNOWN",
+    responseCode:
+      typeof fields.responseCode === "number" &&
+      Number.isInteger(fields.responseCode) &&
+      fields.responseCode >= 100 &&
+      fields.responseCode <= 599
+        ? fields.responseCode
+        : undefined,
+    command:
+      typeof fields.command === "string" &&
+      diagnosticCommands.has(fields.command)
+        ? fields.command
+        : "UNKNOWN",
+  };
+}
+
 export type SendOrderNotificationEmailInput = {
   orderId: string;
   totalAmount: string;
@@ -77,6 +141,7 @@ async function sendEmail(
     logOnlyFirstUrl?: boolean;
     budget?: EmailDeliveryBudget;
     fromEmail?: string;
+    diagnoseAuthFailure?: boolean;
   } = {},
 ) {
   // Fail closed even if a caller supplies an unvalidated environment.
@@ -137,6 +202,12 @@ async function sendEmail(
     // Provider errors can contain credentials or message content. Do not pass
     // the original error (including its cause) to production callers/loggers.
     if (env.NODE_ENV === "production") {
+      if (options.diagnoseAuthFailure) {
+        console.error(
+          "[AUTH EMAIL DELIVERY FAILED]",
+          authEmailFailureDiagnostic(error),
+        );
+      }
       throw new Error("Email delivery failed.");
     }
     throw error;
@@ -146,7 +217,7 @@ async function sendEmail(
 }
 
 export async function sendAuthEmail(input: SendAuthEmailInput) {
-  await sendEmail(input, { logOnlyFirstUrl: true });
+  await sendEmail(input, { logOnlyFirstUrl: true, diagnoseAuthFailure: true });
 }
 
 export async function sendCustomerOrderReceiptEmail(

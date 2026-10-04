@@ -111,7 +111,21 @@ beforeEach(() => {
 afterEach(() => {
   if (env.NODE_ENV === "production") {
     for (const method of ["log", "warn", "error", "info", "debug"] as const) {
-      expect(console[method]).not.toHaveBeenCalled();
+      if (method !== "error") expect(console[method]).not.toHaveBeenCalled();
+    }
+    for (const call of vi.mocked(console.error).mock.calls) {
+      expect(call).toEqual([
+        "[AUTH EMAIL DELIVERY FAILED]",
+        expect.objectContaining({
+          code: expect.any(String),
+          command: expect.any(String),
+        }),
+      ]);
+      expect(Object.keys(call[1] as object).sort()).toEqual([
+        "code",
+        "command",
+        "responseCode",
+      ]);
     }
   }
   transport.close();
@@ -150,6 +164,7 @@ describe("email delivery with Nodemailer", () => {
         auth: { user: "local-test-user", pass: "local-test-password" },
       });
       expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(console.error).not.toHaveBeenCalled();
       expect(sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           from: '"R1 Store" <sender@example.com>',
@@ -186,6 +201,9 @@ describe("email delivery with Nodemailer", () => {
         new Error("Email delivery failed."),
       );
       expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(console.error).toHaveBeenCalledTimes(
+        message.name === "order notification" ? 0 : 1,
+      );
     },
   );
 
@@ -238,6 +256,99 @@ describe("email delivery with Nodemailer", () => {
     await messages[0]!.send();
     expect(nodemailer.createTransport).toHaveBeenCalledWith(
       expect.objectContaining({ secure: true, port: 465 }),
+    );
+  });
+
+  it("uses the STARTTLS-capable non-implicit transport for port 2525", async () => {
+    env.SMTP_PORT = 2525;
+    await messages[0]!.send();
+    expect(nodemailer.createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        secure: false,
+        port: 2525,
+      }),
+    );
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it.each(messages.slice(0, 2))(
+    "logs only safe SMTP fields for $name",
+    async (message) => {
+      const failure = Object.assign(
+        new Error(`${message.url} ${env.SMTP_PASSWORD}`),
+        {
+          code: "EAUTH",
+          responseCode: 535,
+          command: "AUTH PLAIN",
+          response: `${env.SMTP_USER} ${user.email} ${message.url}`,
+        },
+      );
+      sendMail.mockRejectedValue(failure);
+      await expect(message.send()).rejects.toEqual(
+        new Error("Email delivery failed."),
+      );
+      expect(console.error).toHaveBeenCalledExactlyOnceWith(
+        "[AUTH EMAIL DELIVERY FAILED]",
+        {
+          code: "EAUTH",
+          responseCode: 535,
+          command: "AUTH PLAIN",
+        },
+      );
+    },
+  );
+
+  it.each([
+    { code: "ETIMEOUT", command: "CONN" },
+    { code: "ESOCKET", command: "CONN" },
+    { code: "ETLS", command: "STARTTLS" },
+  ])("retains the allowlisted $code/$command stage", async (fields) => {
+    sendMail.mockRejectedValue(
+      Object.assign(new Error("Private provider text"), fields),
+    );
+    await expect(messages[0]!.send()).rejects.toThrow("Email delivery failed.");
+    expect(console.error).toHaveBeenCalledExactlyOnceWith(
+      "[AUTH EMAIL DELIVERY FAILED]",
+      {
+        ...fields,
+        responseCode: undefined,
+      },
+    );
+  });
+
+  it.each([
+    {
+      code: verificationUrl,
+      responseCode: "535",
+      command: `AUTH ${env.SMTP_PASSWORD}`,
+    },
+    {
+      code: "UNRECOGNIZED",
+      responseCode: 600,
+      command: `RCPT TO:<${user.email}>`,
+    },
+    { code: "EAUTH", responseCode: 535.5, command: resetUrl },
+  ])("rejects unsafe or malformed diagnostic fields %#", async (fields) => {
+    sendMail.mockRejectedValue(
+      Object.assign(new Error(verificationUrl), fields),
+    );
+    await expect(messages[0]!.send()).rejects.toThrow("Email delivery failed.");
+    expect(console.error).toHaveBeenCalledExactlyOnceWith(
+      "[AUTH EMAIL DELIVERY FAILED]",
+      {
+        code: fields.code === "EAUTH" ? "EAUTH" : "UNKNOWN",
+        responseCode: undefined,
+        command: "UNKNOWN",
+      },
+    );
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      user.email,
+    );
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      verificationUrl,
+    );
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      env.SMTP_PASSWORD,
     );
   });
 
