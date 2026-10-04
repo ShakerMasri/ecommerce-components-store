@@ -1,5 +1,20 @@
 # Current handoff
 
+Updated: 2026-10-04. **Hosted authentication-email diagnostics CODE VERIFIED; actual Render SMTP cause pending sanitized hosted evidence.**
+
+- Branch `feat/customer-order-emails`, HEAD `1095d7932d20029660361e311e6e1d93003e1d52`; preserved existing Neon documentation edits. Production auth-mail catch discarded SMTP detail. Added only `[AUTH EMAIL DELIVERY FAILED]` with exact allowlisted code/command and valid numeric SMTP response code; no provider text, raw error, recipient, body, credentials, URL or tokens. Verification/reset customer errors remain generic; receipt/owner and all transport/TLS/timing behavior unchanged. Port 2525 is parsed numerically and uses advertised STARTTLS; auth transport has no explicit `requireTLS`, and certificate verification remains enabled.
+- PASS: **72 focused tests / 3 files**, mocked/in-memory/offline guard; lint + TypeScript (`npm.cmd run check`), scoped formatting and diff check. Sandbox initially blocked worker startup (`EPERM`); permitted guarded local workers passed. No full suite/build/live send/remote service/database call or `.env`/dependency change. Prior accepted receipt evidence reused, earlier 526-test suite predates this change.
+- Next: after separately authorized deployment, locate `[AUTH EMAIL DELIVERY FAILED]` in Render service Logs at the failure timestamp, before Better Auth's generic error; use only its sanitized code/responseCode/command for diagnosis. No hosted root cause proven. Separate Better Auth client-IP warning pending; proxy trust/rate limits unchanged. No publication performed.
+
+## Preserved Neon preflight
+
+Updated: 2026-10-04. **Neon staging diagnosis BLOCKED awaiting private connection settings, target identity and Render deployed SHA; no database access or writes.**
+
+- Verified clean `feat/customer-order-emails`, HEAD `1095d7932d20029660361e311e6e1d93003e1d52`. Installed Prisma/client 6.19.3; 15 migration/schema inputs match local HEAD, but deployed revision is unknown. Local Prisma URLs point to loopback. `.env.staging.local` blank private template created; verified ignored by `.gitignore:40` and untracked before credential entry. Normal `.env` unchanged.
+- Owner conditionally authorizes existing migrations only on the confirmed intended empty Neon staging target. Next: privately obtain runtime/direct URLs and independent Neon identity, match migration set to deployed SHA, then read-only schema/records/history inspection. Stop before writes for records, conflicts, failed migrations or uncertain identity. Use only process-pinned `migrate deploy` when all conditions hold, verify migrations/required tables, then request hosted products reload. No live service/database/email calls, suites/builds, implementation or dependency changes here. Missing migrations are not yet established.
+
+## Preserved receipt handoff
+
 Updated: 2026-10-04. **Receipt logo provenance portability fixed; CODE VERIFIED, ready for focused review. Actual logo/PNG/receipt runtime unchanged. Existing local receipt acceptance remains passed; hosted acceptance pending.**
 
 - **Preflight/preservation:** `feat/customer-order-emails`, actual HEAD `e5a30dc57ef61be4a746b464d10190d116498918`, initially clean tree (earlier receipt edits now committed externally). No reset/stash/discard, commit/push/deploy, subagents, real `.env` edit or live service/database/email action in this correction. Accepted transport/timing/TLS/sender/templates/checkout and reviews retained.
