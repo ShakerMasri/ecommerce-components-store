@@ -1,5 +1,7 @@
 # Electronics frontend plan
 
+> **Historical frontend plan — annotated 2026-10-06.** The completed visual scope and evidence below are retained as a dated record. Use `docs/agent-handoff.md` and `docs/release-plan.md` for current work, status, and acceptance. R6 supersedes the old proposal to decide the electronics variant model. Old branch/build/integration statuses and “stop” instructions describe their original tasks; they do not block separately authorized current work. Do not reopen this completed frontend plan for the Render IP fix.
+
 ## Goal
 
 Adapt the independent copy of [ecommerce-template-clothing](https://github.com/ShakerMasri/ecommerce-template-clothing) for motors, ICs, breadboards, ESP32 boards, sensors and university project kits.

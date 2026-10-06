@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { env } from "~/env";
 import { storeConfig } from "~/config/store";
 import { prisma } from "~/lib/prisma";
+import { clientIpOptions } from "~/lib/client-ip";
 import { sendAuthEmail } from "~/server/email";
 
 const googleProvider =
@@ -28,6 +29,10 @@ export const auth = betterAuth({
   }),
 
   trustedOrigins: [env.APP_URL],
+
+  advanced: {
+    ipAddress: clientIpOptions,
+  },
 
   ...(googleProvider ? { socialProviders: googleProvider } : {}),
 

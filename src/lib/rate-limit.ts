@@ -4,6 +4,7 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
 import { env } from "~/env";
+import { getClientIp } from "~/lib/client-ip";
 
 type RateLimitBucket =
   | "auth"
@@ -90,33 +91,14 @@ const limiters = redis
     }
   : null;
 
-function getClientIp(request: Request) {
-  // Deployment requirement: these headers are trustworthy only if the verified
-  // ingress overwrites them and prevents direct access. Host selection and spoof
-  // checks are still pending; see R2 in docs/release-plan.md.
-  const forwardedFor = request.headers.get("x-forwarded-for");
-
-  if (forwardedFor) {
-    const firstIp = forwardedFor.split(",")[0]?.trim();
-
-    if (firstIp) {
-      return firstIp;
-    }
-  }
-
-  return (
-    request.headers.get("x-real-ip") ??
-    request.headers.get("cf-connecting-ip") ??
-    "local"
-  );
-}
-
 function getIdentifier(request: Request, identifier?: string) {
   if (identifier) {
     return `user:${identifier}`;
   }
 
-  return `ip:${getClientIp(request)}`;
+  // Missing/invalid trusted information shares a bounded bucket, matching
+  // Better Auth's fail-closed fallback; it never bypasses the configured limit.
+  return `ip:${getClientIp(request) ?? "no-trusted-ip"}`;
 }
 
 function unavailable(bucket: RateLimitBucket): RateLimitResult {
