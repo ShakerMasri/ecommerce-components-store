@@ -85,6 +85,12 @@ const config = {
         source: "/:path*",
         headers: [...securityHeaders, ...productionSecurityHeaders],
       },
+      // Apply at the response boundary, including early denials and failures.
+      // Public catalog APIs keep their existing cache behavior.
+      ...["auth", "cart", "orders", "profile", "admin"].map((group) => ({
+        source: `/api/${group}/:path*`,
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
+      })),
     ];
   },
 };
