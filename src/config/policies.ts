@@ -90,7 +90,9 @@ function formatDeliveryPriceItem(
       : `${area.priceNis} ${deliveryConfig.currency.labels[locale]}`;
 
   if (!area.requiresCustomerAgreement) {
-    return `${label}: ${priceLabel}.`;
+    const labels = area.labels[locale];
+    const note = "note" in labels ? labels.note : null;
+    return `${label}: ${priceLabel}.${note ? ` ${note}` : ""}`;
   }
 
   if (locale === "ar") {

@@ -56,7 +56,7 @@ const socialLinks: readonly PublicSocialLink[] = [
   },
   {
     label: "WhatsApp",
-    href: "https://wa.me/970599355107",
+    href: "https://wa.me/972599355107",
     icon: "whatsapp",
   },
   {
@@ -72,12 +72,12 @@ export const contactConfig = {
     href: "mailto:support@darakit.com",
   },
   phone: {
-    display: "+970599355107",
-    href: "tel:+970599355107",
+    display: "+972599355107",
+    href: "tel:+972599355107",
   },
   whatsapp: {
-    display: "+970599355107",
-    href: "https://wa.me/970599355107",
+    display: "+972599355107",
+    href: "https://wa.me/972599355107",
   },
   supportHours: {
     en: "You can message us anytime. Responses may not be immediate.",

@@ -35,14 +35,15 @@ describe.each(["en", "ar"] as const)("public contacts in %s", (language) => {
     });
     const links = within(nav).getAllByRole("link");
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
-      "https://wa.me/970599355107",
-      "tel:+970599355107",
+      "https://wa.me/972599355107",
+      "tel:+972599355107",
       "mailto:support@darakit.com",
     ]);
     expect(document.documentElement.dir).toBe(
       language === "ar" ? "rtl" : "ltr",
     );
     expect(links[1]?.querySelector("bdi")).toHaveAttribute("dir", "ltr");
+    expect(links[1]).toHaveTextContent("+972599355107");
     await userEvent.tab();
     expect(links[0]).toHaveFocus();
     await userEvent.tab();
@@ -56,7 +57,7 @@ describe.each(["en", "ar"] as const)("public contacts in %s", (language) => {
     }
     expect(
       screen.getByTestId("whatsapp-support-shortcut").getAttribute("href"),
-    ).toMatch(/^https:\/\/wa.me\/970599355107\?text=/);
+    ).toMatch(/^https:\/\/wa.me\/972599355107\?text=/);
     expect(
       screen.queryByText("Legal business information"),
     ).not.toBeInTheDocument();
@@ -86,8 +87,24 @@ describe.each(["en", "ar"] as const)("public contacts in %s", (language) => {
       });
       expect(within(nav).getAllByRole("link")[0]).toHaveAttribute(
         "href",
-        "https://wa.me/970599355107",
+        "https://wa.me/972599355107",
       );
+      if (pageKey === "shipping") {
+        expect(
+          screen.getByText(
+            language === "en"
+              ? "Jerusalem: 35 NIS. Excludes West Jerusalem, Ein Rafa, Ein Naqouba and Abu Ghosh. Select their separate delivery area."
+              : "القدس: 35 شيكل. باستثناء غرب القدس وعين رافا وعين نقوبا وأبو غوش. اختر منطقة التوصيل المنفصلة الخاصة بها.",
+          ),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            language === "en"
+              ? "West Jerusalem, Ein Rafa, Ein Naqouba, Abu Ghosh: 50 NIS. These locations have a separate rate from general Jerusalem delivery."
+              : "غرب القدس، عين رافا، عين نقوبا، أبو غوش: 50 شيكل. لهذه المناطق رسوم توصيل منفصلة عن رسوم التوصيل العامة للقدس.",
+          ),
+        ).toBeInTheDocument();
+      }
     },
   );
 });

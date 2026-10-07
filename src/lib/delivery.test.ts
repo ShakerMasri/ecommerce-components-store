@@ -17,9 +17,9 @@ describe("delivery areas", () => {
     expect(DELIVERY_AREAS).toHaveLength(5);
     expect(getDeliveryPriceNis("nablus_receive_point")).toBe(0);
     expect(getDeliveryPriceNis("west_bank_cities")).toBe(20);
-    expect(getDeliveryPriceNis("jerusalem")).toBe(30);
+    expect(getDeliveryPriceNis("jerusalem")).toBe(35);
     expect(getDeliveryPriceNis("lands_48")).toBe(70);
-    expect(getDeliveryPriceNis("west_jerusalem_area")).toBe(45);
+    expect(getDeliveryPriceNis("west_jerusalem_area")).toBe(50);
   });
 
   it("defines a safe default delivery area", () => {

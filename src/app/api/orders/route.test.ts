@@ -38,8 +38,6 @@ const mocks = vi.hoisted(() => {
     rateLimit: vi.fn(),
     redisLimit: vi.fn(),
     validateSameOriginRequest: vi.fn(),
-    getDeliveryAreaByKey: vi.fn(),
-    isDeliveryAreaKey: vi.fn(),
     sendOrderNotificationEmail: vi.fn(),
     sendCustomerOrderReceiptEmail: vi.fn(),
     env: {
@@ -92,11 +90,6 @@ afterEach(() => {
 
 vi.mock("~/lib/csrf", () => ({
   validateSameOriginRequest: mocks.validateSameOriginRequest,
-}));
-
-vi.mock("~/lib/delivery", () => ({
-  getDeliveryAreaByKey: mocks.getDeliveryAreaByKey,
-  isDeliveryAreaKey: mocks.isDeliveryAreaKey,
 }));
 
 vi.mock("~/env", () => ({
@@ -207,12 +200,6 @@ describe("customer order route", () => {
 
     mocks.validateSameOriginRequest.mockReturnValue(null);
 
-    mocks.getDeliveryAreaByKey.mockReturnValue({
-      key: "west_bank_cities",
-      priceNis: 20,
-    });
-
-    mocks.isDeliveryAreaKey.mockReturnValue(true);
     mocks.env.ORDER_NOTIFICATION_EMAIL = "owner@example.com";
     mocks.sendOrderNotificationEmail.mockResolvedValue(undefined);
     mocks.sendCustomerOrderReceiptEmail.mockResolvedValue(undefined);
@@ -543,6 +530,128 @@ describe("customer order route", () => {
     expect(mocks.tx.user.update).not.toHaveBeenCalled();
     expect(mocks.sendCustomerOrderReceiptEmail).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["jerusalem", "Jerusalem", 35],
+    ["west_jerusalem_area", "West Jerusalem", 50],
+    ["west_jerusalem_area", "Ein Rafa", 50],
+    ["west_jerusalem_area", "Ein Naqouba", 50],
+    ["west_jerusalem_area", "Abu Ghosh", 50],
+    ["west_bank_cities", "Ramallah", 20],
+    ["lands_48", "Haifa", 70],
+    ["nablus_receive_point", "Nablus", 0],
+  ] as const)(
+    "snapshots the configured fee for %s / %s as %i",
+    async (deliveryAreaKey, deliveryCity, fee) => {
+      mocks.tx.order.create.mockImplementationOnce(
+        async ({ data }: { data: Record<string, unknown> }) => ({
+          ...data,
+          id: "order-1",
+          status: "PENDING",
+          createdAt: new Date("2026-10-08T10:00:00.000Z"),
+          items: [],
+        }),
+      );
+      const response = await POST(
+        createRequest({
+          ...createOrderInput(),
+          deliveryAreaKey,
+          deliveryCity,
+          pickupAgreementAccepted: deliveryAreaKey === "nablus_receive_point",
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      const { order } = (await response.json()) as {
+        order: {
+          deliveryAreaKey: string;
+          deliveryPrice: string;
+          totalAmount: string;
+        };
+      };
+      expect(mocks.tx.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            deliveryAreaKey,
+            deliveryCity,
+            deliveryPrice: new Prisma.Decimal(fee),
+            totalAmount: new Prisma.Decimal(80 + fee),
+          }),
+        }),
+      );
+      expect(order.deliveryAreaKey).toBe(deliveryAreaKey);
+      expect(order.deliveryPrice).toBe(String(fee));
+      expect(order.totalAmount).toBe(String(80 + fee));
+    },
+  );
+
+  it.each(["jerusalem", "west_jerusalem_area"])(
+    "rejects a client-supplied fee for %s before checkout side effects",
+    async (deliveryAreaKey) => {
+      const response = await POST(
+        createRequest({
+          ...createOrderInput(),
+          deliveryAreaKey,
+          deliveryPrice: 0,
+        }),
+      );
+      expect(response.status).toBe(400);
+      expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+      expect(mocks.tx.order.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects an unknown destination through the real delivery mapping", async () => {
+    const response = await POST(
+      createRequest({ ...createOrderInput(), deliveryAreaKey: "unknown" }),
+    );
+    expect(response.status).toBe(400);
+    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["jerusalem", 30],
+    ["west_jerusalem_area", 45],
+  ] as const)(
+    "keeps the historical %s fee %i on retry and order reads",
+    async (deliveryAreaKey, oldFee) => {
+      const oldOrder = {
+        ...createOrderInput(),
+        id: "old-order",
+        status: "PENDING",
+        paymentMethod: "CASH_ON_DELIVERY",
+        paymentStatus: "UNPAID",
+        deliveryAreaKey,
+        deliveryPrice: new Prisma.Decimal(oldFee),
+        totalAmount: new Prisma.Decimal(80 + oldFee),
+        createdAt: new Date("2026-10-01T10:00:00.000Z"),
+        items: [],
+      };
+      mocks.tx.order.findUnique.mockResolvedValueOnce(oldOrder);
+      const retry = await POST(
+        createRequest({ ...createOrderInput(), deliveryAreaKey }),
+      );
+      expect(retry.status).toBe(200);
+      expect((await retry.json()).order).toMatchObject({
+        id: "old-order",
+        deliveryPrice: String(oldFee),
+        totalAmount: String(80 + oldFee),
+      });
+      expect(mocks.tx.order.create).not.toHaveBeenCalled();
+      expect(mocks.tx.cartItem.findMany).not.toHaveBeenCalled();
+      expect(mocks.tx.productVariant.updateMany).not.toHaveBeenCalled();
+      expect(mocks.sendCustomerOrderReceiptEmail).not.toHaveBeenCalled();
+
+      mocks.prisma.order.findMany.mockResolvedValueOnce([oldOrder]);
+      const history = await GET(createGetRequest());
+      expect(history.status).toBe(200);
+      expect((await history.json()).orders[0]).toMatchObject({
+        id: "old-order",
+        deliveryPrice: String(oldFee),
+        totalAmount: String(80 + oldFee),
+      });
+    },
+  );
 
   it("creates a pending order and reserves selected option stock", async () => {
     const response = await POST(createRequest(createOrderInput()));
