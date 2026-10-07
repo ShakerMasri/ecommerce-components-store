@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { storeConfig } from "~/config/store";
 import {
   getPublicLegalBusinessProfile,
   isPublishableLegalBusinessValue,
@@ -69,5 +70,18 @@ describe("legal business public configuration", () => {
         }),
       ]),
     );
+  });
+
+  it("retains darakit.com for the storefront without bypassing the .ps profile guard", () => {
+    expect(storeConfig.url).toBe("https://darakit.com");
+    expect(isPublishablePalestinianDomain(storeConfig.url)).toBe(false);
+    for (const locale of ["en", "ar"] as const) {
+      expect(
+        getPublicLegalBusinessProfile(locale, {
+          ...completeConfig,
+          canonicalDomain: storeConfig.url,
+        }),
+      ).toBeNull();
+    }
   });
 });

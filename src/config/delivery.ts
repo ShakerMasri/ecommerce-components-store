@@ -46,7 +46,7 @@ function defineDeliveryConfig<
   return config;
 }
 
-// Existing prices are provisional pending owner confirmation; preserve keys and fees.
+// Owner-confirmed Jerusalem rates; preserve all other fees, keys and agreements.
 export const deliveryConfig = defineDeliveryConfig({
   currency: {
     code: "NIS",
@@ -107,14 +107,16 @@ export const deliveryConfig = defineDeliveryConfig({
     },
     {
       key: "jerusalem",
-      priceNis: 30,
+      priceNis: 35,
       requiresCustomerAgreement: false,
       labels: {
         en: {
           label: "Jerusalem",
+          note: "Excludes West Jerusalem, Ein Rafa, Ein Naqouba and Abu Ghosh. Select their separate delivery area.",
         },
         ar: {
           label: "القدس",
+          note: "باستثناء غرب القدس وعين رافا وعين نقوبا وأبو غوش. اختر منطقة التوصيل المنفصلة الخاصة بها.",
         },
       },
     },
@@ -133,14 +135,16 @@ export const deliveryConfig = defineDeliveryConfig({
     },
     {
       key: "west_jerusalem_area",
-      priceNis: 45,
+      priceNis: 50,
       requiresCustomerAgreement: false,
       labels: {
         en: {
           label: "West Jerusalem, Ein Rafa, Ein Naqouba, Abu Ghosh",
+          note: "These locations have a separate rate from general Jerusalem delivery.",
         },
         ar: {
           label: "غرب القدس، عين رافا، عين نقوبا، أبو غوش",
+          note: "لهذه المناطق رسوم توصيل منفصلة عن رسوم التوصيل العامة للقدس.",
         },
       },
     },
