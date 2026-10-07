@@ -1,8 +1,11 @@
 import { toNextJsHandler } from "better-auth/next-js";
 import { auth } from "~/lib/auth";
+import { withTrustedClientIp } from "~/lib/client-ip";
 import { rateLimit } from "~/lib/rate-limit";
 
-const handlers = toNextJsHandler(auth);
+const handlers = toNextJsHandler((request) =>
+  auth.handler(withTrustedClientIp(request)),
+);
 
 export const GET = handlers.GET;
 

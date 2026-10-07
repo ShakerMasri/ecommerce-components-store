@@ -135,6 +135,7 @@ describe("rateLimit", () => {
 
     const { rateLimit } = await loadRateLimit(
       {
+        NODE_ENV: "production",
         UPSTASH_REDIS_REST_URL: "https://example-upstash.com",
         UPSTASH_REDIS_REST_TOKEN: "test-token",
       },
@@ -144,6 +145,7 @@ describe("rateLimit", () => {
     const result = await rateLimit(
       createRequest({
         "x-forwarded-for": "203.0.113.10, 10.0.0.1",
+        "cf-connecting-ip": "203.0.113.10",
       }),
       "auth",
     );
