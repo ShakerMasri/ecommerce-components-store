@@ -11,6 +11,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  windows-backup:
+    name: Windows backup script tests
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify offline Windows backup behavior
+        shell: powershell
+        run: powershell.exe -NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File scripts/windows-database-backup.test.ps1
+
   quality:
     name: Typecheck, lint, unit tests, build
     runs-on: ubuntu-latest
