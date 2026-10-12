@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppPreferencesProvider } from "~/components/providers/AppPreferencesProvider";
@@ -165,6 +165,22 @@ describe.each(["en", "ar"] as const)(
       await userEvent.type(within(form).getByPlaceholderText("19.99"), "10");
       await userEvent.selectOptions(within(form).getByRole("combobox"), "c");
       await userEvent.click(
+        within(form).getByText(labels.kitContentsHelpTitle),
+      );
+      expect(
+        within(form).getByText(labels.kitContentsHelpTitle).closest("details"),
+      ).toHaveAttribute("open");
+      expect(within(form).getByText(labels.kitContentsHelp)).toBeVisible();
+      expect(form.querySelector("pre")?.textContent).toBe(
+        `[kit-contents]\n${labels.kitContentsExample}\n[/kit-contents]`,
+      );
+      const description =
+        "Project kit.\n[kit-contents]\n2 | Test component\n[/kit-contents]";
+      fireEvent.change(
+        within(form).getByRole("textbox", { name: labels.descriptionLabel }),
+        { target: { value: description } },
+      );
+      await userEvent.click(
         within(form).getByRole("button", { name: labels.createProductButton }),
       );
       const call = fetchMock.mock.calls.find(
@@ -174,7 +190,9 @@ describe.each(["en", "ar"] as const)(
         stock: "4",
         price: "10",
         name: "Illustrative component",
+        description,
       });
+      expect(JSON.parse(call[1].body)).not.toHaveProperty("kitContents");
       expect(JSON.parse(call[1].body)).not.toHaveProperty("sizeLabel");
       expect(await screen.findByRole("alert")).toHaveTextContent(
         labels.invalidOptionStock,
