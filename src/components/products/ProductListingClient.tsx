@@ -167,12 +167,6 @@ export function ProductListingClient() {
     };
   }, [fetchProducts]);
 
-  const selectedCategoryName =
-    selectedCategory === null
-      ? t.products.allProducts
-      : (categories.find((category) => category.slug === selectedCategory)
-          ?.name ?? t.products.selectedCategory);
-
   const hasActiveFilters =
     selectedCategory !== null || appliedSearch.trim() !== "";
 
@@ -251,31 +245,24 @@ export function ProductListingClient() {
         </div>
       </div>
 
-      <div className="rounded-[1.35rem] border border-[var(--line-soft)] bg-[var(--surface-card)] p-3 shadow-sm sm:rounded-[1.5rem] sm:p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 flex-1">
-            <CategoryTabs
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-              allLabel={t.products.allProducts}
-            />
-          </div>
+      <div className="space-y-3">
+        <CategoryTabs
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          allLabel={t.products.allProducts}
+          categoryLabel={t.products.categoryLabel}
+        />
 
-          <div className="shrink-0 text-sm">
-            <p className="font-semibold text-[var(--ink)]">
-              {selectedCategoryName}
+        <div aria-live="polite" aria-atomic="true">
+          {!isLoading && !errorMessage ? (
+            <p className="text-sm text-[var(--ink-muted)]">
+              {t.products.showing} {products.length}{" "}
+              {products.length === 1
+                ? t.products.productSingular
+                : t.products.productPlural}
             </p>
-
-            {!isLoading && !errorMessage ? (
-              <p className="mt-1 text-[var(--ink-muted)]">
-                {t.products.showing} {products.length}{" "}
-                {products.length === 1
-                  ? t.products.productSingular
-                  : t.products.productPlural}
-              </p>
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </div>
 

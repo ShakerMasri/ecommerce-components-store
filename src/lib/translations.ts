@@ -94,6 +94,7 @@ export type TranslationDictionary = {
     loadMore: string;
     loadingMore: string;
     allProducts: string;
+    categoryLabel: string;
     selectedCategory: string;
     showing: string;
     productSingular: string;
@@ -839,6 +840,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       loadMore: "Show more",
       loadingMore: "Loading...",
       allProducts: "All products",
+      categoryLabel: "Category",
       selectedCategory: "Selected category",
       showing: "Showing",
       productSingular: "product",
@@ -1633,6 +1635,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       loadMore: "عرض المزيد",
       loadingMore: "جاري التحميل...",
       allProducts: "كل المنتجات",
+      categoryLabel: "التصنيف",
       selectedCategory: "التصنيف المختار",
       showing: "النتائج:",
       productSingular: "منتج",
