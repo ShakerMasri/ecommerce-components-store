@@ -32,7 +32,7 @@ describe.each(["en", "ar"] as const)(
   "neutral product selection in %s",
   (language) => {
     const t = translations[language];
-    function mount(variants: unknown[]) {
+    function mount(variants: unknown[], description = product.description) {
       localStorage.setItem("language", language);
       vi.stubGlobal(
         "matchMedia",
@@ -45,7 +45,7 @@ describe.each(["en", "ar"] as const)(
           json: async () =>
             init?.method === "POST"
               ? {}
-              : { product: { ...product, variants } },
+              : { product: { ...product, description, variants } },
         }));
       vi.stubGlobal("fetch", fetchMock);
       render(
@@ -138,6 +138,28 @@ describe.each(["en", "ar"] as const)(
       expect(await screen.findByRole("alert")).toHaveTextContent(
         t.cart.failedToAddItem,
       );
+    });
+    it("shows kit contents from the API without changing the cart product or quantity", async () => {
+      const fetchMock = mount(
+        [{ id: "default-id", optionKey: "default", stock: 4, isInStock: true }],
+        "Project kit.\n[kit-contents]\n20 | Jumper wires\n[/kit-contents]",
+      );
+      expect(
+        await screen.findByRole("region", {
+          name: t.products.kitContentsTitle,
+        }),
+      ).toHaveTextContent("Jumper wires");
+      await userEvent.click(
+        screen.getByRole("button", { name: t.cart.addToCart }),
+      );
+      const call = fetchMock.mock.calls.find(
+        (call) => call[1]?.method === "POST",
+      )!;
+      expect(JSON.parse(call[1].body)).toEqual({
+        productId: "p",
+        productVariantId: "default-id",
+        quantity: 1,
+      });
     });
   },
 );

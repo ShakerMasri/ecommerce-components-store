@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ProductDescription } from "./ProductDescription";
 import { AddToCartControls } from "~/components/cart/AddToCartControls";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
 import {
@@ -341,17 +342,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
               )}
             </div>
 
-            <div className="rounded-3xl bg-[var(--surface-muted)] p-4 ring-1 ring-[var(--accent-soft)]">
-              <h2 className="text-sm font-bold text-[var(--ink)]">
-                {t.products.descriptionTitle}
-              </h2>
-
-              <p className="mt-2 text-sm leading-7 break-words whitespace-pre-line text-[var(--ink-muted)]">
-                {product.description?.trim()
-                  ? product.description
-                  : t.products.noDescription}
-              </p>
-            </div>
+            <ProductDescription description={product.description} />
 
             {requiresSelection ? (
               <div className="rounded-3xl border border-[var(--line-soft)] bg-[var(--surface-muted)] p-4">

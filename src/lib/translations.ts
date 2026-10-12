@@ -119,6 +119,10 @@ export type TranslationDictionary = {
     outOfStock: string;
     descriptionTitle: string;
     noDescription: string;
+    kitContentsTitle: string;
+    kitQuantity: string;
+    showAllComponents: string;
+    showFewerComponents: string;
     payment: string;
     cashOnDelivery: string;
     category: string;
@@ -597,6 +601,9 @@ export type TranslationDictionary = {
       make: string;
       descriptionLabel: string;
       descriptionPlaceholder: string;
+      kitContentsHelpTitle: string;
+      kitContentsHelp: string;
+      kitContentsExample: string;
       price: string;
       discountPrice: string;
       discountPricePlaceholder: string;
@@ -860,6 +867,10 @@ export const translations: Record<Language, TranslationDictionary> = {
       outOfStock: "Out of stock",
       descriptionTitle: "Description",
       noDescription: "No description available for this product yet.",
+      kitContentsTitle: "What's included",
+      kitQuantity: "Quantity",
+      showAllComponents: "Show all components",
+      showFewerComponents: "Show fewer components",
       payment: "Payment",
       cashOnDelivery: "Cash on delivery",
       category: "Category",
@@ -1370,6 +1381,10 @@ export const translations: Record<Language, TranslationDictionary> = {
         make: "Make",
         descriptionLabel: "Description",
         descriptionPlaceholder: "Write a clear customer-facing description.",
+        kitContentsHelpTitle: "How to list kit contents",
+        kitContentsHelp:
+          "Optional: add one block like the example below. Keep each marker on its own line, and enter a positive whole quantity followed by | and the component name. Normal description text can go before or after the block. The full description, including this block, has a 1,000-character limit.",
+        kitContentsExample: "1 | Component name\n2 | Another component",
         price: "Price",
         discountPrice: "Discount price",
         discountPricePlaceholder: "Optional sale price",
@@ -1643,6 +1658,10 @@ export const translations: Record<Language, TranslationDictionary> = {
       outOfStock: "غير متوفر",
       descriptionTitle: "الوصف",
       noDescription: "ما في وصف لهاي القطعة حالياً.",
+      kitContentsTitle: "محتويات الطقم",
+      kitQuantity: "الكمية",
+      showAllComponents: "عرض جميع المكوّنات",
+      showFewerComponents: "عرض مكوّنات أقل",
       payment: "الدفع",
       cashOnDelivery: "الدفع عند الاستلام",
       category: "التصنيف",
@@ -2147,6 +2166,10 @@ export const translations: Record<Language, TranslationDictionary> = {
         make: "إنشاء",
         descriptionLabel: "الوصف",
         descriptionPlaceholder: "اكتب وصفاً واضحاً يظهر للعميل.",
+        kitContentsHelpTitle: "كيفية إدراج محتويات الطقم",
+        kitContentsHelp:
+          "اختياري: أضف مقطعاً واحداً مثل المثال أدناه. ضع كل علامة في سطر مستقل، واكتب كمية صحيحة موجبة ثم | ثم اسم المكوّن. يمكنك كتابة الوصف العادي قبل المقطع أو بعده. الحد الأقصى للوصف كاملاً، بما فيه هذا المقطع، هو ١٬٠٠٠ حرف.",
+        kitContentsExample: "1 | اسم المكوّن\n2 | مكوّن آخر",
         price: "السعر",
         discountPrice: "سعر الخصم",
         discountPricePlaceholder: "سعر تخفيض اختياري",

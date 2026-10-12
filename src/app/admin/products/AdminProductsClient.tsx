@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ChangeEvent, Dispatch, FormEvent, SetStateAction } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
 import { OptimizedImage } from "~/components/ui/OptimizedImage";
 
@@ -401,6 +401,9 @@ type ProductFormLabels = {
   make: string;
   descriptionLabel: string;
   descriptionPlaceholder: string;
+  kitContentsHelpTitle: string;
+  kitContentsHelp: string;
+  kitContentsExample: string;
   price: string;
   discountPrice: string;
   discountPricePlaceholder: string;
@@ -464,6 +467,8 @@ function ProductFormFields({
   isUploading,
   labels,
 }: ProductFormFieldsProps) {
+  const descriptionId = useId();
+
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
@@ -562,11 +567,15 @@ function ProductFormFields({
       </div>
 
       <div>
-        <label className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+        <label
+          htmlFor={descriptionId}
+          className="text-sm font-semibold text-zinc-800 dark:text-zinc-100"
+        >
           {labels.descriptionLabel}
         </label>
 
         <textarea
+          id={descriptionId}
           value={form.description}
           onChange={(event) =>
             setForm((current) => ({
@@ -580,6 +589,18 @@ function ProductFormFields({
         />
 
         <FieldError message={errors.description?.[0]} />
+        <details className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+          <summary className="w-fit cursor-pointer rounded-lg py-2 font-semibold">
+            {labels.kitContentsHelpTitle}
+          </summary>
+          <p className="mt-1 leading-6">{labels.kitContentsHelp}</p>
+          <pre
+            dir="ltr"
+            className="mt-2 rounded-xl bg-zinc-100 p-3 text-start text-xs break-words whitespace-pre-wrap dark:bg-zinc-900"
+          >
+            {`[kit-contents]\n${labels.kitContentsExample}\n[/kit-contents]`}
+          </pre>
+        </details>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
