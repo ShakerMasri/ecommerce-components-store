@@ -95,6 +95,9 @@ export type TranslationDictionary = {
     loadingMore: string;
     allProducts: string;
     categoryLabel: string;
+    allCategories: string;
+    searchCategories: string;
+    noCategoriesFound: string;
     selectedCategory: string;
     showing: string;
     productSingular: string;
@@ -841,6 +844,9 @@ export const translations: Record<Language, TranslationDictionary> = {
       loadingMore: "Loading...",
       allProducts: "All products",
       categoryLabel: "Category",
+      allCategories: "All categories",
+      searchCategories: "Search categories",
+      noCategoriesFound: "No matching categories",
       selectedCategory: "Selected category",
       showing: "Showing",
       productSingular: "product",
@@ -1636,6 +1642,9 @@ export const translations: Record<Language, TranslationDictionary> = {
       loadingMore: "جاري التحميل...",
       allProducts: "كل المنتجات",
       categoryLabel: "التصنيف",
+      allCategories: "كل التصنيفات",
+      searchCategories: "ابحث عن تصنيف",
+      noCategoriesFound: "لا توجد تصنيفات مطابقة",
       selectedCategory: "التصنيف المختار",
       showing: "النتائج:",
       productSingular: "منتج",

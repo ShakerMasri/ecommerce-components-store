@@ -1,6 +1,12 @@
 import { type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { translations, type Language } from "~/lib/translations";
 import { ProductListingClient } from "./ProductListingClient";
@@ -29,7 +35,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const categories = Array.from({ length: 6 }, (_, index) => ({
+const categories = Array.from({ length: 80 }, (_, index) => ({
   id: `category-${index}`,
   name: `Components ${index}`,
   slug: `components-${index}`,
@@ -95,8 +101,8 @@ function latestQuery() {
 }
 
 describe("customer catalog category controls", () => {
-  it.each([0, 5])(
-    "keeps all choices available in either control (%i categories)",
+  it.each([0, 5, 80])(
+    "bounds the closed toolbar regardless of category count (%i categories)",
     async (count) => {
       fetchMock.mockResolvedValue(
         new Response(JSON.stringify(response(1, count))),
@@ -104,18 +110,20 @@ describe("customer catalog category controls", () => {
       render(<ProductListingClient />);
       await screen.findByRole("link", { name: "Test board 1" });
 
-      expect(screen.getByRole("combobox", { name: "Category" })).toHaveValue(
-        "",
-      );
-      expect(screen.getAllByRole("option")).toHaveLength(count + 1);
+      const trigger = screen.getByRole("button", { name: "All categories" });
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(trigger.hasAttribute("disabled")).toBe(count === 0);
+      expect(
+        screen.queryByRole("searchbox", { name: "Search categories" }),
+      ).not.toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: "All products" }),
       ).toHaveAttribute("aria-pressed", "true");
       expect(
-        screen
-          .getByRole("group", { name: "Category" })
-          .querySelectorAll("button"),
-      ).toHaveLength(count + 1);
+        within(screen.getByRole("group", { name: "Category" })).getAllByRole(
+          "button",
+        ),
+      ).toHaveLength(Math.min(count, 3) + 2);
     },
   );
 
@@ -128,21 +136,31 @@ describe("customer catalog category controls", () => {
       render(<ProductListingClient />);
       await screen.findByRole("link", { name: "Test board 1" });
 
-      const picker = screen.getByRole("combobox", {
-        name: t.products.categoryLabel,
+      const picker = screen.getByRole("button", {
+        name: t.products.allCategories,
       });
-      expect(picker).toHaveValue("");
-      expect(screen.getAllByRole("option")).toHaveLength(7);
-      await user.selectOptions(picker, "components-5");
+      await user.click(picker);
+      const search = screen.getByRole("searchbox", {
+        name: t.products.searchCategories,
+      });
+      expect(search).toHaveFocus();
+      const callsBeforeSearch = fetchMock.mock.calls.length;
+      await user.type(search, " 5 ");
+      expect(fetchMock.mock.calls).toHaveLength(callsBeforeSearch);
+      await user.click(screen.getByRole("button", { name: "Components 5" }));
       await waitFor(() =>
         expect(latestQuery().get("category")).toBe("components-5"),
       );
-      expect(picker).toHaveValue("components-5");
-      expect(
-        screen.getByRole("button", { name: "Components 5" }),
-      ).toHaveAttribute("aria-pressed", "true");
+      expect(picker).toHaveAccessibleName(
+        `${t.products.allCategories}: Components 5`,
+      );
+      expect(picker).toHaveAttribute("aria-expanded", "false");
+      expect(picker).toHaveFocus();
 
-      await user.type(screen.getByRole("searchbox"), " ESP32 ");
+      await user.type(
+        screen.getByRole("searchbox", { name: t.products.searchLabel }),
+        " ESP32 ",
+      );
       await user.click(
         screen.getByRole("button", { name: t.products.searchButton }),
       );
@@ -163,10 +181,14 @@ describe("customer catalog category controls", () => {
       await waitFor(() =>
         expect(latestQuery().get("category")).toBe("components-2"),
       );
-      expect(picker).toHaveValue("components-2");
+      expect(picker).toHaveAccessibleName(
+        `${t.products.allCategories}: Components 2`,
+      );
       expect(latestQuery().get("page")).toBe("1");
       expect(latestQuery().get("search")).toBe("ESP32");
-      await user.selectOptions(picker, "");
+      await user.click(
+        screen.getByRole("button", { name: t.products.allProducts }),
+      );
       await waitFor(() => expect(latestQuery().has("category")).toBe(false));
       expect(latestQuery().get("search")).toBe("ESP32");
     },
@@ -179,7 +201,8 @@ describe("customer catalog category controls", () => {
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify(response(1, 6, false))),
     );
-    await user.selectOptions(screen.getByRole("combobox"), "components-5");
+    await user.click(screen.getByRole("button", { name: "All categories" }));
+    await user.click(screen.getByRole("button", { name: "Components 5" }));
     await screen.findByText(translations.en.products.noProductsTitle);
     expect(screen.getByText("Showing 0 products")).toBeInTheDocument();
     await user.click(
@@ -188,7 +211,9 @@ describe("customer catalog category controls", () => {
       }),
     );
     await screen.findByRole("link", { name: "Test board 1" });
-    expect(screen.getByRole("combobox")).toHaveValue("");
+    expect(
+      screen.getByRole("button", { name: "All categories" }),
+    ).toHaveAttribute("aria-expanded", "false");
     expect(latestQuery().has("category")).toBe(false);
 
     fetchMock.mockResolvedValueOnce(
@@ -196,11 +221,87 @@ describe("customer catalog category controls", () => {
         status: 503,
       }),
     );
-    await user.selectOptions(screen.getByRole("combobox"), "components-1");
+    await user.click(screen.getByRole("button", { name: "Components 1" }));
     await screen.findByText("Catalog unavailable");
     expect(screen.queryByText("Showing 1 product")).not.toBeInTheDocument();
-    await user.selectOptions(screen.getByRole("combobox"), "components-2");
+    await user.click(screen.getByRole("button", { name: "Components 2" }));
     await screen.findByRole("link", { name: "Test board 1" });
     expect(screen.queryByText("Catalog unavailable")).not.toBeInTheDocument();
+  });
+
+  it.each(["en", "ar"] as const)(
+    "searches a large list locally and handles no matches and keyboard dismissal (%s)",
+    async (language) => {
+      preferences.language = language;
+      const t = translations[language];
+      fetchMock.mockImplementation(
+        async () => new Response(JSON.stringify(response(1, 80))),
+      );
+      const user = userEvent.setup();
+      render(<ProductListingClient />);
+      await screen.findByRole("link", { name: "Test board 1" });
+      const trigger = screen.getByRole("button", {
+        name: t.products.allCategories,
+      });
+      await user.click(trigger);
+      const panel = document.getElementById(
+        trigger.getAttribute("aria-controls")!,
+      );
+      expect(panel).not.toBeNull();
+      const search = screen.getByRole("searchbox", {
+        name: t.products.searchCategories,
+      });
+      const callsBeforeSearch = fetchMock.mock.calls.length;
+      await user.type(search, "No match");
+      expect(screen.getByRole("status")).toHaveTextContent(
+        t.products.noCategoriesFound,
+      );
+      await user.clear(search);
+      await user.type(search, "cOMPONENTS 79");
+      expect(fetchMock.mock.calls).toHaveLength(callsBeforeSearch);
+      await user.tab();
+      await user.tab();
+      expect(
+        screen.getByRole("button", { name: "Components 79" }),
+      ).toHaveFocus();
+      await user.keyboard("{Enter}");
+      await waitFor(() =>
+        expect(latestQuery().get("category")).toBe("components-79"),
+      );
+      expect(trigger).toHaveFocus();
+      expect(trigger).toHaveAccessibleName(
+        `${t.products.allCategories}: Components 79`,
+      );
+      await user.click(trigger);
+      expect(
+        screen.getByRole("searchbox", { name: t.products.searchCategories }),
+      ).toHaveValue("");
+      expect(
+        within(panel!).getByRole("button", { name: "Components 79" }),
+      ).toHaveAttribute("aria-pressed", "true");
+      await user.keyboard("{Escape}");
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(trigger).toHaveFocus();
+      await user.click(trigger);
+      await user.click(
+        screen.getByRole("searchbox", { name: t.products.searchLabel }),
+      );
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(
+        screen.getByRole("searchbox", { name: t.products.searchLabel }),
+      ).toHaveFocus();
+    },
+  );
+
+  it("closes when Tab leaves the dropdown without stealing focus", async () => {
+    const user = userEvent.setup();
+    render(<ProductListingClient />);
+    await screen.findByRole("link", { name: "Test board 1" });
+    const trigger = screen.getByRole("button", { name: "All categories" });
+    await user.click(trigger);
+    screen.getByRole("button", { name: "Components 5" }).focus();
+    await user.tab();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("link", { name: "Test board 1" })).toHaveFocus();
   });
 });

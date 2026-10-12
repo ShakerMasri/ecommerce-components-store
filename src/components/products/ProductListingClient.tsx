@@ -252,6 +252,9 @@ export function ProductListingClient() {
           onCategoryChange={setSelectedCategory}
           allLabel={t.products.allProducts}
           categoryLabel={t.products.categoryLabel}
+          allCategoriesLabel={t.products.allCategories}
+          searchCategoriesLabel={t.products.searchCategories}
+          noCategoriesLabel={t.products.noCategoriesFound}
         />
 
         <div aria-live="polite" aria-atomic="true">
