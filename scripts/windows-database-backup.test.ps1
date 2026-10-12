@@ -117,6 +117,10 @@ Import-Module ScheduledTasks -ErrorAction Stop
 function Get-ScheduledTask { param($TaskName, $ErrorAction) return $null }
 function Read-Host {
     param([string]$Prompt, [switch]$AsSecureString)
+    if ($PrivateDirectory -like '*prompt-interrupted*' -and -not (Test-Path -LiteralPath (Join-Path $PrivateDirectory 'synthetic-interruption.txt'))) {
+        [IO.File]::WriteAllText((Join-Path $PrivateDirectory 'synthetic-interruption.txt'), 'SYNTHETIC INTERRUPT')
+        throw [OperationCanceledException]::new('Synthetic prompt interruption')
+    }
     if ($AsSecureString) { return (ConvertTo-SecureString 'synthetic:a\b' -AsPlainText -Force) }
     if ($Prompt -like 'Unpooled HOST*') { return 'ep-success.neon.tech' }
     if ($Prompt -eq 'Database name') { return 'synthetic_db' }
@@ -170,6 +174,16 @@ exit $LASTEXITCODE
     $failedSetupFolder = New-Fixture 'failed-setup' 'ep-dump-fail.neon.tech'
     $failedSetupResult = Invoke-Fixture $failedSetupFolder $driver
     Assert-BackupTest ($failedSetupResult.Code -ne 0 -and -not (Test-Path -LiteralPath (Join-Path $failedSetupFolder 'synthetic-registration.txt'))) 'failed initial export prevents schedule registration'
+
+    $interruptedFolder = Join-Path $testRoot 'prompt-interrupted'
+    $interrupted = Invoke-Fixture $interruptedFolder $driver
+    Assert-BackupTest ($interrupted.Code -ne 0 -and -not (Test-Path -LiteralPath (Join-Path $interruptedFolder 'settings.json'))) 'prompt interruption does not save settings'
+    $resumed = Invoke-Fixture $interruptedFolder $driver
+    if ($resumed.Code -ne 0) {
+        $resumeFailure = (Get-Content -LiteralPath (Join-Path $interruptedFolder 'backup-status.log') | Select-Object -Last 1) -replace [regex]::Escape($testRoot), '<synthetic-test-folder>'
+        throw ('Offline interrupted-setup retry failed: ' + $resumeFailure)
+    }
+    Assert-BackupTest ($resumed.Code -eq 0 -and (Test-Path -LiteralPath (Join-Path $interruptedFolder 'synthetic-registration.txt'))) 'setup can resume after interruption in a prompt'
 
     Write-Output "PASS: $passed offline process, archive lifecycle, failure, overlap, task-definition and ACL assertions. Fake PostgreSQL tools; registration stubbed; no database/network/real scheduler acceptance."
 } finally {

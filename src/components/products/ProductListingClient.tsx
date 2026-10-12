@@ -191,18 +191,18 @@ export function ProductListingClient() {
 
   return (
     <section className="space-y-5 sm:space-y-6">
-      <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-card)] p-4 shadow-sm sm:rounded-[1.75rem] sm:p-5 lg:p-6">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
+      <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-card)] p-4 shadow-sm max-sm:p-3 sm:rounded-[1.75rem] sm:p-5 lg:p-6">
+        <div className="grid gap-5 max-sm:gap-3 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
           <div>
-            <p className="text-xs font-semibold tracking-[0.22em] text-[var(--accent)] uppercase">
+            <p className="text-xs font-semibold tracking-[0.22em] text-[var(--accent)] uppercase max-sm:hidden">
               {t.products.badge}
             </p>
 
-            <h1 className="mt-2 max-w-3xl text-2xl leading-tight font-bold tracking-[-0.035em] text-[var(--ink)] sm:mt-3 sm:text-4xl lg:text-5xl">
+            <h1 className="mt-2 max-w-3xl text-2xl leading-tight font-bold tracking-[-0.035em] text-[var(--ink)] max-sm:mt-0 max-sm:text-xl sm:mt-3 sm:text-4xl lg:text-5xl">
               {t.products.title}
             </h1>
 
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-muted)] sm:mt-3 sm:leading-7">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-muted)] max-sm:hidden sm:mt-3 sm:leading-7">
               {t.products.description}
             </p>
           </div>
@@ -210,27 +210,41 @@ export function ProductListingClient() {
           <form onSubmit={handleSearchSubmit}>
             <label
               htmlFor="product-search"
-              className="text-xs font-semibold tracking-[0.2em] text-[var(--accent)] uppercase"
+              className="text-xs font-semibold tracking-[0.2em] text-[var(--accent)] uppercase max-sm:sr-only"
             >
               {t.products.searchLabel}
             </label>
 
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <div className="mt-2 flex gap-2 max-sm:mt-0">
               <input
                 id="product-search"
                 type="search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder={t.products.searchPlaceholder}
-                className="min-h-11 w-full rounded-full border border-[var(--line-soft)] bg-[var(--surface-elevated)] px-4 text-sm text-[var(--ink)] transition outline-none placeholder:text-[var(--ink-muted)] focus:border-[var(--accent)] focus:bg-[var(--surface-card)] sm:min-h-12"
+                className="min-h-11 w-full rounded-full border border-[var(--line-soft)] bg-[var(--surface-elevated)] px-4 text-sm text-[var(--ink)] transition outline-none placeholder:text-[var(--ink-muted)] focus:border-[var(--accent)] focus:bg-[var(--surface-card)] max-sm:min-w-0 sm:min-h-12"
               />
 
               <button
                 type="submit"
-                className="min-h-11 shrink-0 rounded-full bg-[var(--ink)] px-5 py-2 text-sm font-semibold text-[var(--surface-page)] transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-12"
+                className="min-h-11 shrink-0 rounded-full bg-[var(--ink)] px-5 py-2 text-sm font-semibold text-[var(--surface-page)] transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60 max-sm:flex max-sm:w-11 max-sm:items-center max-sm:justify-center max-sm:px-0 sm:min-h-12"
                 disabled={isLoading || isLoadingMore}
               >
-                {t.products.searchButton}
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  className="h-5 w-5 sm:hidden"
+                >
+                  <circle cx="10.5" cy="10.5" r="6.5" />
+                  <path d="m16 16 4.5 4.5" />
+                </svg>
+                <span className="max-sm:sr-only">
+                  {t.products.searchButton}
+                </span>
               </button>
             </div>
           </form>

@@ -29,7 +29,9 @@ function Set-PrivateFolderPermissions {
     if ((Get-Item -LiteralPath $privateRoot).Attributes -band [IO.FileAttributes]::ReparsePoint) {
         throw 'The private folder must not be a link or junction.'
     }
-    $acl = Get-Acl -LiteralPath $privateRoot
+    # Read/write only access rules. Reapplying a full security descriptor can
+    # require SeSecurityPrivilege on a retry even though the user owns the folder.
+    $acl = [IO.Directory]::GetAccessControl($privateRoot, [Security.AccessControl.AccessControlSections]::Access)
     $acl.SetAccessRuleProtection($true, $false)
     foreach ($existingRule in @($acl.Access)) { $acl.RemoveAccessRuleSpecific($existingRule) }
     $owner = [Security.Principal.WindowsIdentity]::GetCurrent().User
@@ -39,7 +41,7 @@ function Set-PrivateFolderPermissions {
             $identity, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow')
         $acl.AddAccessRule($rule)
     }
-    Set-Acl -LiteralPath $privateRoot -AclObject $acl
+    [IO.Directory]::SetAccessControl($privateRoot, $acl)
 }
 
 function Write-BackupStatus([string]$Message) {
