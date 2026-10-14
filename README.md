@@ -172,6 +172,8 @@ Build for dependency/configuration changes and final release validation. Documen
 
 Database integration suites require explicit disposable-target opt-ins and otherwise skip. Passing unit/component tests or skipped integration tests do not establish database or hosted service acceptance. See the [shared acceptance rules](docs/release-plan.md#shared-acceptance-rules) for evidence requirements.
 
+SEO PostgreSQL acceptance is prepared separately: `node node_modules/vitest/vitest.mjs run src/server/seo-postgres.integration.test.ts --maxWorkers=1`. Without the explicit `SEO_TEST_DATABASE_DISPOSABLE=yes` and guarded `SEO_TEST_DATABASE_URL`, it runs 27 offline cases (11 target-safety cases and 16 synthetic harness regressions) and skips 17 live cases. Before opting in, review and authorize the [dedicated target, migration and cleanup procedure](docs/seo-launch-plan.md#postgresql-acceptance-preparation--2026-10-14); never point it at the normal development or hosted database.
+
 Playwright needs a running app, disposable test accounts/products, and a private `.env.e2e.local` using the `E2E_*` settings shown in `.env.example`:
 
 ```powershell
