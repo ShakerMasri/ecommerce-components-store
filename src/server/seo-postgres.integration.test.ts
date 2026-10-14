@@ -103,8 +103,8 @@ function assertTerminatedReader(
   expect(termination.attempts).toBe(1);
   expect(Number.isSafeInteger(termination.pid)).toBe(true);
   expect(termination.pid).toBeGreaterThan(0);
-  expect(termination.terminated).toBe(true);
   expect(termination).not.toHaveProperty("setupError");
+  expect(termination.terminated).toBe(true);
   expect(reads).toHaveLength(2);
   expect(reads[0]).toEqual({ batch: 1, rows: 500 });
   expect(reads[1]!.batch).toBe(2);
@@ -842,6 +842,8 @@ describe
     it("fails uncached when transaction acquisition exceeds the unchanged 2-second maxWait", async () => {
       const singleUrl = new URL(target!);
       singleUrl.searchParams.set("connection_limit", "1");
+      // Let the unchanged 2s transaction maxWait expire before the pool's timer.
+      singleUrl.searchParams.set("pool_timeout", "10");
       const single = new PrismaClient({ datasourceUrl: singleUrl.href });
       let release!: () => void;
       let ready!: () => void;
@@ -868,8 +870,17 @@ describe
             }),
           ]);
           bindClient(single);
-          await unavailable(await GET());
+          const started = performance.now();
+          const response = await GET();
+          const elapsed = performance.now() - started;
+          await unavailable(response);
           knownFailure("P2028");
+          expect(failure).toMatchObject({
+            meta: { error: "Unable to start a transaction in the given time." },
+          });
+          expect(batchArgs).toEqual([]);
+          expect(elapsed).toBeGreaterThanOrEqual(1_800);
+          expect(elapsed).toBeLessThan(8_000);
         },
         {
           release,
@@ -893,7 +904,7 @@ describe
           termination.pid = row!.pid;
           const [result] = await db!.$queryRaw<
             { terminated: boolean }[]
-          >`SELECT pg_terminate_backend(${termination.pid}) AS terminated`;
+          >`SELECT pg_terminate_backend(${termination.pid}::integer) AS terminated`;
           termination.terminated = result?.terminated;
         } catch (error) {
           termination.setupError = error;
