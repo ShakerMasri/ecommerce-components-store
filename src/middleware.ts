@@ -13,5 +13,5 @@ export async function middleware(request: NextRequest) {
 export const config = {
   runtime: "nodejs",
   // No prefetch/header/bot exemptions. APIs retain their own single boundary.
-  matcher: ["/products/:slug"],
+  matcher: ["/products/:slug", "/sitemap.xml"],
 };

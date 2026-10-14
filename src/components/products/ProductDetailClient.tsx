@@ -113,7 +113,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         </Link>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-start">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-start">
         <div className="space-y-4">
           <div className="relative aspect-square overflow-hidden rounded-[2rem] border border-[var(--line-soft)] bg-[var(--surface-muted)] shadow-sm">
             {selectedImage ? (

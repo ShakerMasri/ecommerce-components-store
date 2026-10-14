@@ -1,4 +1,7 @@
 import { CartClient } from "~/components/cart/CartClient";
+import { nonIndexableMetadata } from "~/lib/indexing";
+
+export const metadata = nonIndexableMetadata;
 
 export default function CartPage() {
   return (

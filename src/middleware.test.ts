@@ -29,11 +29,13 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("product detail HTTP quota boundary", () => {
+describe("public catalog HTTP quota boundary", () => {
   it.each([
     "/products/board",
     "/products/%3Cscript%3E",
     "/products/board?_rsc=test",
+    "/sitemap.xml",
+    "/sitemap.xml?spoof=1",
   ])("matches %s without header exemptions", (url) => {
     for (const headers of [
       {},
@@ -55,6 +57,8 @@ describe("product detail HTTP quota boundary", () => {
     "/cart",
     "/products/board/extra",
     "/_next/static/test.js",
+    "/sitemap.xml/extra",
+    "/sitemap/0.xml",
   ])("leaves %s to its existing boundary", (url) => {
     expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(
       false,
@@ -83,23 +87,29 @@ describe("product detail HTTP quota boundary", () => {
       );
     },
   );
-  it("returns an uncached 429 with the quota headers intact", async () => {
-    transport.evalsha.mockResolvedValue([-1, 300]);
-    const response = await middleware(
-      new NextRequest("http://localhost/products/board", {
-        headers: { "cf-connecting-ip": "203.0.113.42" },
-      }),
-    );
-    expect(response.status).toBe(429);
-    expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(Number(response.headers.get("Retry-After"))).toBeGreaterThanOrEqual(
-      1,
-    );
-    expect(response.headers.get("X-RateLimit-Limit")).toBe("300");
-    expect(response.headers.get("X-RateLimit-Remaining")).toBe("0");
-    expect(response.headers.has("X-RateLimit-Reset")).toBe(true);
-    expect(transport.evalsha).toHaveBeenCalledTimes(1);
-  });
+  it.each(["/products/board", "/sitemap.xml"])(
+    "returns an uncached 429 with quota headers on %s",
+    async (path) => {
+      transport.evalsha.mockResolvedValue([-1, 300]);
+      const response = await middleware(
+        new NextRequest(`http://localhost${path}`, {
+          headers: {
+            "cf-connecting-ip":
+              path === "/sitemap.xml" ? "203.0.113.43" : "203.0.113.42",
+          },
+        }),
+      );
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+      expect(
+        Number(response.headers.get("Retry-After")),
+      ).toBeGreaterThanOrEqual(1);
+      expect(response.headers.get("X-RateLimit-Limit")).toBe("300");
+      expect(response.headers.get("X-RateLimit-Remaining")).toBe("0");
+      expect(response.headers.has("X-RateLimit-Reset")).toBe(true);
+      expect(transport.evalsha).toHaveBeenCalledTimes(1);
+    },
+  );
   it("retains publicRead fail-open on transport exceptions and actual library timeout", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     transport.evalsha.mockRejectedValueOnce(new Error("synthetic offline"));

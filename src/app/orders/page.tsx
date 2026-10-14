@@ -1,4 +1,7 @@
 import { OrdersClient } from "~/components/orders/OrdersClient";
+import { nonIndexableMetadata } from "~/lib/indexing";
+
+export const metadata = nonIndexableMetadata;
 
 export default function OrdersPage() {
   return (

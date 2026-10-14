@@ -159,7 +159,7 @@ describe("public product reader/page/API integration with synthetic Prisma resul
         { ...record, variants, showStock: true },
       ]);
       const page = await ProductPage(props);
-      const product = page.props.children.props.product as PublicProduct;
+      const product = page.props.children[1].props.product as PublicProduct;
       const api = await detailApi(
         new Request("http://localhost/api/products/synthetic-board"),
         props,
@@ -173,6 +173,22 @@ describe("public product reader/page/API integration with synthetic Prisma resul
       });
       expect(product.isInStock).toBe(inStock);
       expect(product.hasVariants).toBe(named);
+      const script = page.props.children[0];
+      if (variants.length === 1 && variants[0]?.optionKey === "default") {
+        expect(script).toBeTruthy();
+        if (script) {
+          const markup = JSON.parse(
+            script.props.dangerouslySetInnerHTML.__html,
+          );
+          expect(markup.name).toBe(product.name);
+          expect(markup.offers).toMatchObject({
+            price: Number(product.discountPrice ?? product.price),
+            priceCurrency: "ILS",
+            availability: `https://schema.org/${inStock ? "InStock" : "OutOfStock"}`,
+          });
+          expect(markup).not.toHaveProperty("stock");
+        }
+      } else expect(script).toBeNull();
     },
   );
 

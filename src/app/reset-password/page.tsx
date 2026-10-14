@@ -1,5 +1,8 @@
 import { Suspense } from "react";
 import { ResetPasswordForm } from "~/components/auth/ResetPasswordForm";
+import { nonIndexableMetadata } from "~/lib/indexing";
+
+export const metadata = nonIndexableMetadata;
 
 export default function ResetPasswordPage() {
   return (

@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 import { LoginForm } from "~/components/auth/LoginForm";
 import { env } from "~/env";
+import { nonIndexableMetadata } from "~/lib/indexing";
+
+export const metadata = nonIndexableMetadata;
 
 export default function LoginPage() {
   const googleSignInEnabled = Boolean(

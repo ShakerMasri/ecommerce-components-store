@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { ProfileForm } from "~/components/account/ProfileForm";
 import { auth } from "~/server/auth";
+import { nonIndexableMetadata } from "~/lib/indexing";
+
+export const metadata = nonIndexableMetadata;
 
 export default async function ProfilePage() {
   const session = await auth();

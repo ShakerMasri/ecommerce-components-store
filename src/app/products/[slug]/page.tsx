@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import { ProductDetailClient } from "~/components/products/ProductDetailClient";
 import { storeConfig } from "~/config/store";
 import { productDescriptionSnippet } from "~/lib/product-description";
+import {
+  productMarkup,
+  serializeProductMarkup,
+  usableProductImages,
+} from "~/lib/product-markup";
 import { getPublicProduct } from "~/server/public-products";
 import { productSlugSchema } from "~/server/validations/product";
 
@@ -30,15 +35,10 @@ export async function generateMetadata({
   const title = `${product.name} | ${storeConfig.name}`;
   const description = productDescriptionSnippet(product.description);
   const url = `${storeConfig.url}/products/${product.slug}`;
-  const images = product.images
-    .filter((image) => {
-      try {
-        return ["https:", "http:"].includes(new URL(image).protocol);
-      } catch {
-        return false;
-      }
-    })
-    .map((url) => ({ url, alt: product.name }));
+  const images = usableProductImages(product.images).map((url) => ({
+    url,
+    alt: product.name,
+  }));
   return {
     title,
     description,
@@ -63,9 +63,16 @@ export async function generateMetadata({
 export default async function ProductPage({ params }: ProductPageProps) {
   // Resolve 404/5xx before returning JSX. Do not add an early loading shell.
   const product = await requireProduct(params);
+  const markup = productMarkup(product);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
+      {markup && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeProductMarkup(markup) }}
+        />
+      )}
       <ProductDetailClient product={product} />
     </main>
   );
