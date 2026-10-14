@@ -67,5 +67,22 @@ export function withTrustedClientIp(request: Request): Request {
 
   // Validate before Better Auth's request-phase limiter. Its plugin onRequest
   // hook runs after that limiter and cannot enforce this stricter single value.
-  return new Request(request, { headers });
+  // Next.js proxies route requests. Passing that proxy as Request input accesses
+  // native private slots with the wrong receiver; copy the public fields instead.
+  const init: RequestInit & { duplex: "half" } = {
+    method: request.method,
+    headers,
+    body: request.body,
+    signal: request.signal,
+    cache: request.cache,
+    credentials: request.credentials,
+    integrity: request.integrity,
+    keepalive: request.keepalive,
+    mode: request.mode,
+    redirect: request.redirect,
+    referrer: request.referrer,
+    referrerPolicy: request.referrerPolicy,
+    duplex: "half",
+  };
+  return new Request(request.url, init);
 }
