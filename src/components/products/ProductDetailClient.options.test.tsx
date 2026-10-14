@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppPreferencesProvider } from "~/components/providers/AppPreferencesProvider";
 import { translations } from "~/lib/translations";
+import { type PublicProductVariant } from "~/lib/public-product";
 import { ProductDetailClient } from "./ProductDetailClient";
 
 vi.mock("next/navigation", () => ({
@@ -21,7 +22,8 @@ const product = {
   showStock: true,
   isFeatured: false,
   hasVariants: true,
-  category: { name: "Electronics", slug: "test" },
+  createdAt: "2026-01-01T00:00:00.000Z",
+  category: { id: "category", name: "Electronics", slug: "test" },
 };
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -32,7 +34,10 @@ describe.each(["en", "ar"] as const)(
   "neutral product selection in %s",
   (language) => {
     const t = translations[language];
-    function mount(variants: unknown[], description = product.description) {
+    function mount(
+      variants: Partial<PublicProductVariant>[],
+      description = product.description,
+    ) {
       localStorage.setItem("language", language);
       vi.stubGlobal(
         "matchMedia",
@@ -50,9 +55,26 @@ describe.each(["en", "ar"] as const)(
       vi.stubGlobal("fetch", fetchMock);
       render(
         <AppPreferencesProvider>
-          <ProductDetailClient slug="test" />
+          <ProductDetailClient
+            product={{
+              ...product,
+              description,
+              variants: variants.map((variant) => ({
+                id: "v",
+                optionKey: null,
+                optionLabel: null,
+                sizeLabel: null,
+                colorLabel: null,
+                stock: null,
+                isInStock: false,
+                sortOrder: 0,
+                ...variant,
+              })),
+            }}
+          />
         </AppPreferencesProvider>,
       );
+      expect(fetchMock).not.toHaveBeenCalled();
       return fetchMock;
     }
     it("purchases a default with no selector and its stable variant ID", async () => {
@@ -139,7 +161,7 @@ describe.each(["en", "ar"] as const)(
         t.cart.failedToAddItem,
       );
     });
-    it("shows kit contents from the API without changing the cart product or quantity", async () => {
+    it("shows kit contents from the server seed without changing the cart product or quantity", async () => {
       const fetchMock = mount(
         [{ id: "default-id", optionKey: "default", stock: 4, isInStock: true }],
         "Project kit.\n[kit-contents]\n20 | Jumper wires\n[/kit-contents]",

@@ -10,47 +10,12 @@ import {
   getOptimizedCloudinarySrc,
 } from "~/components/ui/OptimizedImage";
 
-type ProductVariant = {
-  id: string;
-  optionKey: string | null;
-  optionLabel: string | null;
-  sizeLabel: string | null;
-  colorLabel: string | null;
-  stock: number | null;
-  isInStock: boolean;
-  sortOrder: number;
-};
+import {
+  type PublicProduct as Product,
+  type PublicProductVariant as ProductVariant,
+} from "~/lib/public-product";
 
-type Product = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  price: string;
-  discountPrice: string | null;
-  stock: number | null;
-  isInStock: boolean;
-  showStock: boolean;
-  images: string[];
-  isFeatured: boolean;
-  hasVariants: boolean;
-  variants: ProductVariant[];
-  createdAt: string;
-  category: {
-    id: string;
-    name: string;
-    slug: string;
-  };
-};
-
-type ProductResponse = {
-  product?: Product;
-  message?: string;
-};
-
-type ProductDetailClientProps = {
-  slug: string;
-};
+type ProductDetailClientProps = { product: Product };
 
 function formatPrice(price: string) {
   return `₪${Number(price).toFixed(2)}`;
@@ -64,64 +29,34 @@ function formatVariantLabel(variant: ProductVariant, fallback: string) {
   return variant.optionLabel ?? fallback;
 }
 
-export function ProductDetailClient({ slug }: ProductDetailClientProps) {
+export function ProductDetailClient({ product }: ProductDetailClientProps) {
   const { t, language } = useAppPreferences();
-
-  const [product, setProduct] = useState<Product | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
-    null,
+  const [snapshot, setSnapshot] = useState(product);
+  const [selectedImage, setSelectedImage] = useState<string | null>(
+    product.images.at(0) ?? null,
   );
-  const [isLoading, setIsLoading] = useState(true);
-  const [message, setMessage] = useState("");
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    product.variants.find((v) => v.optionKey === "default")?.id ?? null,
+  );
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function fetchProduct() {
-      setIsLoading(true);
-      setMessage("");
-
-      try {
-        const response = await fetch(
-          `/api/products/${encodeURIComponent(slug)}`,
-          {
-            signal: controller.signal,
-          },
-        );
-
-        const data = (await response.json()) as ProductResponse;
-
-        if (!response.ok || !data.product) {
-          setProduct(null);
-          setMessage(t.products.productNotFound);
-          return;
-        }
-
-        setProduct(data.product);
-        setSelectedImage(data.product.images.at(0) ?? null);
-        setSelectedVariantId(
-          data.product.variants.find((v) => v.optionKey === "default")?.id ??
-            null,
-        );
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-
-        setProduct(null);
-        setMessage(t.products.failedToConnect);
-      } finally {
-        setIsLoading(false);
-      }
+  // Reconcile before rendering a new server snapshot, including router.refresh().
+  // Keep valid choices on refresh; reset choices for another product/removed stock.
+  if (snapshot !== product) {
+    const sameProduct =
+      snapshot.id === product.id && snapshot.slug === product.slug;
+    setSnapshot(product);
+    if (!sameProduct || !product.images.includes(selectedImage ?? "")) {
+      setSelectedImage(product.images.at(0) ?? null);
     }
-
-    void fetchProduct();
-
-    return () => {
-      controller.abort();
-    };
-  }, [slug, t.products.failedToConnect, t.products.productNotFound]);
+    if (
+      !sameProduct ||
+      !product.variants.some((v) => v.id === selectedVariantId && v.isInStock)
+    ) {
+      setSelectedVariantId(
+        product.variants.find((v) => v.optionKey === "default")?.id ?? null,
+      );
+    }
+  }
 
   useEffect(() => {
     if (!product || !selectedImage || product.images.length < 2) {
@@ -148,54 +83,6 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
       window.clearTimeout(timeoutId);
     };
   }, [product, selectedImage]);
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-8 lg:grid-cols-2">
-        <div className="space-y-4">
-          <div className="aspect-square animate-pulse rounded-3xl bg-[var(--surface-muted)]" />
-
-          <div className="grid grid-cols-4 gap-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div
-                key={index}
-                className="aspect-square animate-pulse rounded-2xl bg-[var(--surface-muted)]"
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-5">
-          <div className="h-4 w-28 animate-pulse rounded bg-[var(--surface-muted)]" />
-          <div className="h-10 w-3/4 animate-pulse rounded bg-[var(--surface-muted)]" />
-          <div className="h-7 w-32 animate-pulse rounded bg-[var(--surface-muted)]" />
-          <div className="h-28 animate-pulse rounded-2xl bg-[var(--surface-muted)]" />
-          <div className="h-12 w-full animate-pulse rounded-full bg-[var(--surface-muted)]" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="mx-auto max-w-2xl rounded-3xl border border-[var(--line-soft)] bg-[var(--surface-card)] p-8 text-center shadow-sm">
-        <h1 className="text-2xl font-black text-[var(--ink)]">
-          {t.products.productNotFound}
-        </h1>
-
-        <p className="mt-3 text-sm leading-6 text-[var(--ink-muted)]">
-          {message || t.products.productUnavailable}
-        </p>
-
-        <Link
-          href="/products"
-          className="mt-6 inline-flex rounded-full bg-[var(--ink)] px-5 py-2.5 text-sm font-semibold text-[var(--surface-page)] transition hover:bg-[var(--accent-strong)]"
-        >
-          {t.actions.backToProducts}
-        </Link>
-      </div>
-    );
-  }
 
   const requiresSelection = product.variants.some(
     (v) => v.optionKey !== "default",
@@ -423,6 +310,7 @@ export function ProductDetailClient({ slug }: ProductDetailClientProps) {
 
             <div className="border-t border-[var(--line-soft)] pt-5">
               <AddToCartControls
+                key={`${product.id}:${selectedVariant?.id ?? "unselected"}`}
                 productId={product.id}
                 productVariantId={selectedVariant?.id ?? null}
                 stock={customerVisibleStock}

@@ -1,4 +1,7 @@
-import { isMappedOption } from "~/lib/sellable-options";
+import {
+  mapPublicProductSummary,
+  publicProductListSelect,
+} from "~/server/public-products";
 import { NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { rateLimit } from "~/lib/rate-limit";
@@ -133,38 +136,7 @@ export async function GET(request: Request) {
         skip,
         take: pageSize + 1,
         orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }, { id: "asc" }],
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          price: true,
-          discountPrice: true,
-          images: true,
-          isFeatured: true,
-          showStock: true,
-          _count: {
-            select: {
-              variants: true,
-            },
-          },
-          variants: {
-            where: {
-              isActive: true,
-            },
-            select: {
-              optionKey: true,
-              optionLabel: true,
-              stock: true,
-            },
-          },
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-        },
+        select: publicProductListSelect,
       }),
 
       prisma.category.findMany({
@@ -182,29 +154,7 @@ export async function GET(request: Request) {
     const pageProducts = products.slice(0, pageSize);
     const hasMore = products.length > pageSize;
 
-    const safeProducts = pageProducts.map((product) => {
-      const activeVariantStock = product.variants
-        .filter(isMappedOption)
-        .reduce((sum, variant) => sum + variant.stock, 0);
-      const hasVariants = product.variants.some(
-        (v) => isMappedOption(v) && v.optionKey !== "default",
-      );
-
-      return {
-        id: product.id,
-        name: product.name,
-        slug: product.slug,
-        stock: product.showStock ? activeVariantStock : null,
-        isInStock: activeVariantStock > 0,
-        images: product.images,
-        isFeatured: product.isFeatured,
-        showStock: product.showStock,
-        category: product.category,
-        hasVariants,
-        price: product.price.toString(),
-        discountPrice: product.discountPrice?.toString() ?? null,
-      };
-    });
+    const safeProducts = pageProducts.map(mapPublicProductSummary);
 
     return NextResponse.json({
       products: safeProducts,
