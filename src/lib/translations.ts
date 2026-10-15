@@ -133,6 +133,7 @@ export type TranslationDictionary = {
     productId: string;
     stockNote: string;
     productNotFound: string;
+    failedToLoadProduct: string;
     productUnavailable: string;
     image: string;
     of: string;
@@ -886,6 +887,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       stockNote:
         "Adding to cart does not reserve stock. Stock is checked again when the order is placed.",
       productNotFound: "Product not found",
+      failedToLoadProduct: "Failed to load product.",
       productUnavailable:
         "This product is unavailable or may have been removed.",
       image: "Image",
@@ -1681,6 +1683,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       stockNote:
         "الإضافة إلى السلة لا تحجز المخزون. يتم فحص المخزون مرة أخرى عند إنشاء الطلب.",
       productNotFound: "المنتج غير موجود",
+      failedToLoadProduct: "تعذر تحميل المنتج.",
       productUnavailable: "هذا المنتج غير متوفر أو ربما تمت إزالته.",
       image: "الصورة",
       of: "من",

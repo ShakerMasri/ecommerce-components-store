@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 
 const config = vi.hoisted(() => ({ NODE_ENV: "production" }));
 vi.mock("~/env", () => ({ env: config }));
@@ -15,6 +16,54 @@ afterEach(() => {
 });
 
 describe("Render client IP", () => {
+  it.each(["development", "production"])(
+    "preserves a proxied Next.js POST request in %s without accessing private slots",
+    async (mode) => {
+      config.NODE_ENV = mode;
+      const controller = new AbortController();
+      const original = new NextRequest(
+        "https://darakit.com/api/auth/sign-in/email",
+        {
+          method: "POST",
+          headers: {
+            "cf-connecting-ip": "2001:DB8::1",
+            cookie: "fixture=local-test",
+            origin: "https://darakit.com",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ test: true }),
+          signal: controller.signal,
+          credentials: "include",
+          redirect: "manual",
+          cache: "no-store",
+        },
+      );
+      // Match Next.js's route proxy: getters/methods use the target receiver.
+      const request = new Proxy(original, {
+        get(target, property) {
+          const value: unknown = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+      const prepared = withTrustedClientIp(request);
+      expect(prepared.headers.get("cf-connecting-ip")).toBe(
+        mode === "development"
+          ? "127.0.0.1"
+          : "2001:0db8:0000:0000:0000:0000:0000:0000",
+      );
+      expect(original.headers.get("cf-connecting-ip")).toBe("2001:DB8::1");
+      expect(prepared.url).toBe(original.url);
+      expect(prepared.method).toBe("POST");
+      expect(prepared.headers.get("cookie")).toBe("fixture=local-test");
+      expect(prepared.headers.get("origin")).toBe("https://darakit.com");
+      expect(prepared.credentials).toBe("include");
+      expect(prepared.redirect).toBe("manual");
+      expect(prepared.cache).toBe("no-store");
+      expect(await prepared.json()).toEqual({ test: true });
+      controller.abort();
+      expect(prepared.signal.aborted).toBe(true);
+    },
+  );
   it.each([
     ["203.0.113.10", "203.0.113.10"],
     [" 203.0.113.10 ", "203.0.113.10"],

@@ -12,6 +12,7 @@ import type { BetterAuthOptions } from "better-auth";
 import type { auth as authInstance } from "~/lib/auth";
 import type { rateLimit as limitRequest } from "~/lib/rate-limit";
 import type * as AuthRoutes from "./route";
+import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   env: {
@@ -100,6 +101,38 @@ function request(value?: string, method = "GET", headers: HeadersInit = {}) {
 }
 
 describe("real Better Auth and application IP consumers (offline)", () => {
+  it.each([
+    ["development", "sign-in/email"],
+    ["production", "sign-in/email"],
+    ["development", "sign-up/email"],
+    ["production", "sign-up/email"],
+  ])("accepts proxied Next.js %s %s POST requests", async (mode, endpoint) => {
+    mocks.env.NODE_ENV = mode;
+    const original = new NextRequest(
+      `https://darakit.com/api/auth/${endpoint}`,
+      {
+        method: "POST",
+        headers: {
+          "cf-connecting-ip": "::ffff:203.0.113.10",
+          origin: "https://darakit.com",
+          "content-type": "application/json",
+        },
+        body: "{}",
+      },
+    );
+    const request = new Proxy(original, {
+      get(target, property) {
+        const value: unknown = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    // Real adapter/handler validates the body; no database/email is needed.
+    expect((await routes.POST(request)).status).toBe(400);
+    const ip = mode === "development" ? "127.0.0.1" : "203.0.113.10";
+    expect(mocks.limit).toHaveBeenCalledWith(`ip:${ip}`);
+    expect(authKeys).toContain(`${ip}|/${endpoint}`);
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
+  });
   it("configures only the documented Render header and retains /64", () => {
     expect(auth.options.advanced).toEqual({
       ipAddress: { ipAddressHeaders: ["cf-connecting-ip"], ipv6Subnet: 64 },

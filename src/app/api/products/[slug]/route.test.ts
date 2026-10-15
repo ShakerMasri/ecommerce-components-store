@@ -191,8 +191,7 @@ describe("GET /api/products/[slug]", () => {
         select: expect.objectContaining({
           discountPrice: true,
           showStock: true,
-          _count: expect.any(Object),
-          variants: expect.any(Object),
+          variants: expect.objectContaining({ where: { isActive: true } }),
         }),
       }),
     );
