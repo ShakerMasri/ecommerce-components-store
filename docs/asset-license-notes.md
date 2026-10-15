@@ -70,6 +70,8 @@ Decision:
 - Before production, every real Cloudinary product image must be client-owned, supplier-approved, original, or properly licensed.
 - Unknown-source images must be removed or replaced.
 
+2026-10-15 SEO fixture note: the owner reports that the existing two proposed staging product images came from the internet and are already on Cloudinary. The approved temporary staging fixture reuses their exact existing URLs; no new image is ingested or published by this preparation. Their source/permission evidence remains undocumented for production review; Cloudinary storage does not resolve that evidence gap. Separately prepared optional original geometric SVG/PNG test illustrations are local ignored artifacts under `node_modules/.cache/seo-hosted-20261015/fixture-prep-20261015-71a4fc7/original-images-20261015`, with source hashes and inspected PNGs. They contain no third-party photos/logos/embedded images/font files and have not been uploaded or incorporated into the application.
+
 ### Icons, SVGs, and UI Asset Packs
 
 Status: accepted with trademark caution

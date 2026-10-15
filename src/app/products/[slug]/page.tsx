@@ -66,7 +66,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const markup = productMarkup(product);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8">
       {markup && (
         <script
           type="application/ld+json"
@@ -74,6 +74,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
         />
       )}
       <ProductDetailClient product={product} />
-    </main>
+    </div>
   );
 }
