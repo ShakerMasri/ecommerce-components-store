@@ -192,7 +192,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
               </p>
 
               <h1 className="mt-2 text-3xl font-black tracking-tight break-words text-[var(--ink)] sm:text-4xl">
-                {product.name}
+                <bdi dir="auto">{product.name}</bdi>
               </h1>
             </div>
 

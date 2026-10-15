@@ -142,3 +142,39 @@ it("drops removed/unavailable options and images on refresh and resets for a new
   );
   expect(fetch).not.toHaveBeenCalled();
 });
+
+it.each([
+  "10 pcs Jumper wires",
+  "٣ قطع أسلاك",
+  "ESP32-S3 وحدة تطوير",
+  "لوحة ESP32-S3",
+])(
+  "keeps the accessible product name isolated across language changes: %s",
+  async (name) => {
+    const { rerender } = render(tree({ ...seed, name }));
+    const heading = screen.getByRole("heading", { level: 1, name });
+    const isolatedName = heading.querySelector("bdi");
+    expect(isolatedName).toHaveAttribute("dir", "auto");
+    expect(isolatedName).toHaveTextContent(name);
+    expect(document.documentElement.dir).toBe("ltr");
+
+    await userEvent.click(screen.getByRole("button", { name: "Language" }));
+    expect(document.documentElement.dir).toBe("rtl");
+    expect(screen.getByRole("heading", { level: 1, name })).toBe(heading);
+    expect(heading.querySelector("bdi")).toBe(isolatedName);
+    expect(isolatedName).toHaveAttribute("dir", "auto");
+
+    rerender(
+      tree({
+        ...seed,
+        id: "next-title",
+        slug: "next-title",
+        name: "7 × لوحة ESP32",
+      }),
+    );
+    expect(
+      screen.getByRole("heading", { level: 1, name: "7 × لوحة ESP32" }),
+    ).toBeVisible();
+    expect(fetch).not.toHaveBeenCalled();
+  },
+);
