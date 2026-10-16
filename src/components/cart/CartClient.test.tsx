@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppPreferencesProvider } from "~/components/providers/AppPreferencesProvider";
 import { translations } from "~/lib/translations";
 import { PHONE_INPUT_MAX_LENGTH, phoneSchema } from "~/lib/phone";
+import { updateCartItemSchema } from "~/server/validations/cart";
 import { CartClient } from "./CartClient";
 
 const cart = {
@@ -67,7 +68,237 @@ afterEach(() => {
   localStorage.clear();
 });
 
+describe.each(["en", "ar"] as const)(
+  "cart quantity recovery in %s",
+  (language) => {
+    it.each([
+      { quantity: 198, stock: 1000, visible: true, expected: 99 },
+      { quantity: 198, stock: 40, visible: true, expected: 40 },
+      { quantity: 100, stock: 1000, visible: true, expected: 99 },
+      { quantity: 99, stock: 1000, visible: true, expected: 98 },
+      { quantity: 5, stock: 2, visible: true, expected: 2 },
+      { quantity: 5, stock: 10, visible: true, expected: 4 },
+      { quantity: 198, stock: 1000, visible: false, expected: 99 },
+      { quantity: 198, stock: 40, visible: false, expected: 1 },
+      { quantity: 5, stock: 2, visible: false, expected: 1 },
+      { quantity: 2, stock: 1, visible: true, expected: 1 },
+    ])(
+      "reduces $quantity with stock $stock (visible: $visible) to $expected only on activation",
+      async ({ quantity: initial, stock, visible, expected }) => {
+        localStorage.setItem("language", language);
+        vi.stubGlobal(
+          "matchMedia",
+          vi.fn(() => ({ matches: false })),
+        );
+        let quantity = initial;
+        const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+          if (init?.method === "PATCH") {
+            const parsed = updateCartItemSchema.safeParse(
+              JSON.parse(init.body as string),
+            );
+            const ok = parsed.success && parsed.data.quantity <= stock;
+            if (ok) quantity = parsed.data.quantity;
+            return { ok, json: async () => ({}) };
+          }
+          return {
+            ok: true,
+            json: async () => ({
+              ...cart,
+              cartItems: [
+                {
+                  ...cart.cartItems[0]!,
+                  quantity,
+                  availableStock: visible ? stock : null,
+                  hasEnoughStock: quantity <= stock,
+                  product: {
+                    ...cart.cartItems[0]!.product,
+                    showStock: visible,
+                    stock: visible ? stock : null,
+                  },
+                },
+              ],
+            }),
+          };
+        });
+        vi.stubGlobal("fetch", fetchMock);
+        render(
+          <AppPreferencesProvider>
+            <CartClient />
+          </AppPreferencesProvider>,
+        );
+        const t = translations[language];
+        const decrease = await screen.findByRole("button", {
+          name: t.cart.decreaseQuantity,
+        });
+        expect(decrease.parentElement).toHaveTextContent(String(initial));
+        expect(
+          fetchMock.mock.calls.every(
+            ([url, init]) => url === "/api/cart" && init?.method !== "PATCH",
+          ),
+        ).toBe(true);
+        expect(document.documentElement.dir).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+        fireEvent.click(decrease);
+        await waitFor(() =>
+          expect(decrease.parentElement).toHaveTextContent(String(expected)),
+        );
+        expect(quantity).toBe(expected);
+        expect(fetchMock).toHaveBeenCalledWith(
+          "/api/cart/items/item",
+          expect.objectContaining({
+            method: "PATCH",
+            body: JSON.stringify({ quantity: expected }),
+          }),
+        );
+        expect(
+          screen.queryByText(t.cart.failedToUpdate),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it.each([
+      { quantity: 1, stock: 1000, isAvailable: true },
+      { quantity: 198, stock: 0, isAvailable: false },
+      { quantity: 198, stock: 1000, isAvailable: false },
+    ])(
+      "does not submit a decrement when quantity=$quantity, stock=$stock, available=$isAvailable",
+      async ({ quantity, stock, isAvailable }) => {
+        localStorage.setItem("language", language);
+        vi.stubGlobal(
+          "matchMedia",
+          vi.fn(() => ({ matches: false })),
+        );
+        const fetchMock = vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            ...cart,
+            cartItems: [
+              {
+                ...cart.cartItems[0]!,
+                quantity,
+                availableStock: stock,
+                isAvailable,
+                hasEnoughStock: isAvailable && quantity <= stock,
+              },
+            ],
+          }),
+        });
+        vi.stubGlobal("fetch", fetchMock);
+        render(
+          <AppPreferencesProvider>
+            <CartClient />
+          </AppPreferencesProvider>,
+        );
+        const decrease = await screen.findByRole("button", {
+          name: translations[language].cart.decreaseQuantity,
+        });
+        expect(decrease).toBeDisabled();
+        fireEvent.click(decrease);
+        expect(
+          fetchMock.mock.calls.every(
+            ([url, init]) => url === "/api/cart" && init?.method !== "PATCH",
+          ),
+        ).toBe(true);
+      },
+    );
+
+    it("retains the line and localized failure when fresh server stock rejects recovery", async () => {
+      localStorage.setItem("language", language);
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn(() => ({ matches: false })),
+      );
+      const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+        init?.method === "PATCH"
+          ? {
+              ok: false,
+              json: async () => ({ message: "Not enough stock available." }),
+            }
+          : {
+              ok: true,
+              json: async () => ({
+                ...cart,
+                cartItems: [
+                  {
+                    ...cart.cartItems[0]!,
+                    quantity: 198,
+                    availableStock: 1000,
+                  },
+                ],
+              }),
+            },
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      render(
+        <AppPreferencesProvider>
+          <CartClient />
+        </AppPreferencesProvider>,
+      );
+      const decrease = await screen.findByRole("button", {
+        name: translations[language].cart.decreaseQuantity,
+      });
+      fireEvent.click(decrease);
+      await screen.findByText(translations[language].cart.failedToUpdate);
+      expect(decrease.parentElement).toHaveTextContent("198");
+      expect(decrease).toBeEnabled();
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/cart/items/item",
+        expect.objectContaining({ body: JSON.stringify({ quantity: 99 }) }),
+      );
+    });
+  },
+);
+
 describe.each(["en", "ar"] as const)("checkout phone in %s", (language) => {
+  it("disables increases at 99 with ample stock and sends a normal decrement", async () => {
+    localStorage.setItem("language", language);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: false })),
+    );
+    let quantity = 99;
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "PATCH") {
+        quantity = (JSON.parse(init.body as string) as { quantity: number })
+          .quantity;
+        return { ok: true, json: async () => ({}) };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          ...cart,
+          cartItems: [
+            { ...cart.cartItems[0]!, quantity, availableStock: 1000 },
+          ],
+        }),
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <AppPreferencesProvider>
+        <CartClient />
+      </AppPreferencesProvider>,
+    );
+    const t = translations[language];
+    const increase = await screen.findByRole("button", {
+      name: t.cart.increaseQuantity,
+    });
+    expect(increase).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole("button", { name: t.cart.decreaseQuantity }),
+    );
+    await waitFor(() => expect(increase).toBeEnabled());
+    expect(quantity).toBe(98);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/cart/items/item",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ quantity: 98 }),
+      }),
+    );
+  });
+
   it("keeps entry/display LTR and blocks invalid phones with localized feedback", async () => {
     localStorage.setItem("language", language);
     vi.stubGlobal(

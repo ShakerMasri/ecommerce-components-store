@@ -1,5 +1,7 @@
 "use client";
 
+import { MAX_CART_ITEM_QUANTITY } from "~/lib/cart";
+
 import Link from "next/link";
 import { updateProfileSchema } from "~/lib/validations";
 import { PHONE_INPUT_MAX_LENGTH } from "~/lib/phone";
@@ -700,6 +702,14 @@ export function CartClient() {
             const itemUnitPrice = getEffectiveCartPrice(item.product);
             const itemHasDiscount = hasCartDiscount(item.product);
             const itemSubtotal = itemUnitPrice * item.quantity;
+            // Hidden stock can be insufficient without exposing its count.
+            // One is the only known safe positive quantity in that case.
+            const decreasedQuantity = Math.min(
+              item.quantity - 1,
+              MAX_CART_ITEM_QUANTITY,
+              item.availableStock ??
+                (item.hasEnoughStock ? MAX_CART_ITEM_QUANTITY : 1),
+            );
 
             return (
               <article
@@ -788,10 +798,14 @@ export function CartClient() {
                         <button
                           type="button"
                           disabled={
-                            item.quantity <= 1 || isUpdating || isRemoving
+                            decreasedQuantity < 1 ||
+                            !item.isAvailable ||
+                            isArchived ||
+                            isUpdating ||
+                            isRemoving
                           }
                           onClick={() =>
-                            void updateQuantity(item.id, item.quantity - 1)
+                            void updateQuantity(item.id, decreasedQuantity)
                           }
                           className="flex h-11 w-11 items-center justify-center text-lg font-bold text-[var(--ink-muted)] transition hover:bg-[var(--surface-muted)] focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                           aria-label={t.cart.decreaseQuantity}
@@ -809,7 +823,7 @@ export function CartClient() {
                             (item.product.showStock &&
                               item.availableStock !== null &&
                               item.quantity >= item.availableStock) ||
-                            item.quantity >= 99 ||
+                            item.quantity >= MAX_CART_ITEM_QUANTITY ||
                             exceedsStock ||
                             isArchived ||
                             isOutOfStock ||

@@ -1,5 +1,6 @@
 import { isMappedOption } from "~/lib/sellable-options";
 import { NextResponse } from "next/server";
+import { MAX_CART_ITEM_QUANTITY } from "~/lib/cart";
 import { validateSameOriginRequest } from "~/lib/csrf";
 import { prisma } from "~/lib/prisma";
 import { rateLimit } from "~/lib/rate-limit";
@@ -14,6 +15,15 @@ function getCartLineKey(productId: string, productVariantId: string | null) {
 }
 
 function cartItemErrorResponse(error: unknown) {
+  if (error instanceof Error && error.message === "QUANTITY_LIMIT_EXCEEDED") {
+    return NextResponse.json(
+      {
+        message: `Cart items are limited to ${MAX_CART_ITEM_QUANTITY} per line.`,
+      },
+      { status: 400 },
+    );
+  }
+
   if (error instanceof Error && error.message === "PRODUCT_NOT_AVAILABLE") {
     return NextResponse.json(
       { message: "Product is not available." },
@@ -149,6 +159,10 @@ export async function POST(request: Request) {
 
       if (existingCartItem) {
         const nextQuantity = existingCartItem.quantity + quantity;
+
+        if (nextQuantity > MAX_CART_ITEM_QUANTITY) {
+          throw new Error("QUANTITY_LIMIT_EXCEEDED");
+        }
 
         if (nextQuantity > availableStock) {
           throw new Error("INSUFFICIENT_STOCK");

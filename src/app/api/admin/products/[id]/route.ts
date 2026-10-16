@@ -199,61 +199,62 @@ export async function PATCH(request: Request, { params }: ProductRouteProps) {
       }
     }
 
-    if (
-      parsedBody.data.price !== undefined ||
-      parsedBody.data.discountPrice !== undefined
-    ) {
-      const existingProduct = await prisma.product.findUnique({
+    return await prisma.$transaction(async (tx) => {
+      if (
+        parsedBody.data.price !== undefined ||
+        parsedBody.data.discountPrice !== undefined
+      ) {
+        // Match option writers' row lock: hold the price-pair read through the
+        // write, while allowing checkout's product foreign-key key-share lock.
+        const [existingProduct] = await tx.$queryRaw<
+          { price: Prisma.Decimal; discountPrice: Prisma.Decimal | null }[]
+        >(Prisma.sql`
+        SELECT "price", "discountPrice" FROM "Product"
+        WHERE "id" = ${parsedParams.data.id} FOR NO KEY UPDATE
+      `);
+
+        if (!existingProduct) {
+          return NextResponse.json({ message: "Not found." }, { status: 404 });
+        }
+
+        const nextPrice =
+          parsedBody.data.price !== undefined
+            ? new Prisma.Decimal(parsedBody.data.price)
+            : existingProduct.price;
+        const nextDiscountPrice =
+          parsedBody.data.discountPrice !== undefined
+            ? parsedBody.data.discountPrice === null
+              ? null
+              : new Prisma.Decimal(parsedBody.data.discountPrice)
+            : existingProduct.discountPrice;
+
+        if (nextDiscountPrice?.gte(nextPrice)) {
+          return NextResponse.json(
+            {
+              message: "Invalid input.",
+              errors: {
+                discountPrice: [
+                  "Discount price must be lower than the regular price.",
+                ],
+              },
+            },
+            { status: 400 },
+          );
+        }
+      }
+
+      const product = await tx.product.update({
         where: {
           id: parsedParams.data.id,
         },
-        select: {
-          price: true,
-          discountPrice: true,
-        },
+        data: parsedBody.data,
+        select: adminProductSelect,
       });
 
-      if (!existingProduct) {
-        return NextResponse.json({ message: "Not found." }, { status: 404 });
-      }
-
-      const nextPrice =
-        parsedBody.data.price !== undefined
-          ? new Prisma.Decimal(parsedBody.data.price)
-          : existingProduct.price;
-      const nextDiscountPrice =
-        parsedBody.data.discountPrice !== undefined
-          ? parsedBody.data.discountPrice === null
-            ? null
-            : new Prisma.Decimal(parsedBody.data.discountPrice)
-          : existingProduct.discountPrice;
-
-      if (nextDiscountPrice?.gte(nextPrice)) {
-        return NextResponse.json(
-          {
-            message: "Invalid input.",
-            errors: {
-              discountPrice: [
-                "Discount price must be lower than the regular price.",
-              ],
-            },
-          },
-          { status: 400 },
-        );
-      }
-    }
-
-    const product = await prisma.product.update({
-      where: {
-        id: parsedParams.data.id,
-      },
-      data: parsedBody.data,
-      select: adminProductSelect,
-    });
-
-    return NextResponse.json({
-      message: "Product updated successfully.",
-      product: serializeProduct(product),
+      return NextResponse.json({
+        message: "Product updated successfully.",
+        product: serializeProduct(product),
+      });
     });
   } catch (error) {
     if (

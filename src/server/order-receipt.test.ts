@@ -52,6 +52,7 @@ const order: ReceiptOrder = {
 };
 const realCreateTransport = nodemailer.createTransport.bind(nodemailer);
 beforeEach(() => {
+  env.NODE_ENV = "production";
   env.ORDER_RECEIPT_FROM_EMAIL = undefined;
 });
 afterEach(() => vi.restoreAllMocks());
@@ -259,6 +260,9 @@ describe("Arabic customer order receipt", () => {
       env.ORDER_RECEIPT_FROM_EMAIL = receiptSender;
       const sender = receiptSender ?? env.SMTP_FROM_EMAIL;
       let data = false;
+      // This test deliberately checks MIME over a plaintext local fixture.
+      // Production TLS delivery/rejection is covered by email-tls.test.ts.
+      env.NODE_ENV = "test";
       let mime = "";
       const commands: string[] = [];
       const wire = new Duplex({

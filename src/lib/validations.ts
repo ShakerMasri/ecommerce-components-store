@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { phoneSchema } from "./phone";
+import { profileNameSchema, profileSchema } from "./profile-validation";
 
 const slugSchema = z
   .string()
@@ -81,11 +82,7 @@ const productImageUrlSchema = z
   );
 
 export const registerSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Name must be at least 2 characters")
-    .max(50, "Name must be less than 50 characters"),
+  name: profileNameSchema,
 
   email: z.string().trim().email("Invalid email address").toLowerCase(),
 
@@ -103,15 +100,7 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export const updateProfileSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Name must be at least 2 characters")
-    .max(50, "Name must be less than 50 characters"),
-
-  phone: phoneSchema,
-});
+export const updateProfileSchema = profileSchema;
 
 export const categorySchema = z.object({
   name: z
