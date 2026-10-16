@@ -174,6 +174,9 @@ async function sendEmail(
       host: env.SMTP_HOST,
       port: env.SMTP_PORT,
       secure: env.SMTP_PORT === 465,
+      // Production must fail closed if STARTTLS is stripped or unavailable.
+      // Development/test SMTP fixtures may deliberately speak plaintext.
+      requireTLS: env.NODE_ENV === "production" && env.SMTP_PORT !== 465,
       auth: {
         user: env.SMTP_USER,
         pass: env.SMTP_PASSWORD,

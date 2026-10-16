@@ -161,6 +161,7 @@ describe("email delivery with Nodemailer", () => {
         host: "smtp.example.invalid",
         port: 587,
         secure: false,
+        requireTLS: true,
         auth: { user: "local-test-user", pass: "local-test-password" },
       });
       expect(sendMail).toHaveBeenCalledTimes(1);
@@ -258,6 +259,19 @@ describe("email delivery with Nodemailer", () => {
       expect.objectContaining({ secure: true, port: 465 }),
     );
   });
+
+  it.each(["development", "test"])(
+    "allows deliberate %s plaintext SMTP fixtures",
+    async (mode) => {
+      env.NODE_ENV = mode;
+      env.SMTP_HOST = "smtp.fixture.invalid";
+      env.SMTP_PORT = 1025;
+      await messages[0]!.send();
+      expect(nodemailer.createTransport).toHaveBeenCalledWith(
+        expect.objectContaining({ secure: false, requireTLS: false }),
+      );
+    },
+  );
 
   it("uses the STARTTLS-capable non-implicit transport for port 2525", async () => {
     env.SMTP_PORT = 2525;

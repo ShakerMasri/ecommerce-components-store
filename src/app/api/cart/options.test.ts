@@ -77,6 +77,79 @@ beforeEach(() => {
   );
 });
 describe("neutral persisted cart selection", () => {
+  it("caps repeated additions at 99 and permits an owned reduction and refill", async () => {
+    const variant = { ...options[0]!, stock: 1000 };
+    mocks.prisma.product.findUnique.mockResolvedValue({
+      id: productId,
+      isArchived: false,
+      variants: [variant],
+    });
+    let quantity = 0;
+    mocks.prisma.cartItem.findUnique.mockImplementation(async () =>
+      quantity ? { id: a, quantity } : null,
+    );
+    mocks.prisma.cartItem.create.mockImplementation(async ({ data }) => {
+      quantity = data.quantity;
+      return { id: a, ...data };
+    });
+    mocks.prisma.cartItem.update.mockImplementation(async ({ data }) => {
+      quantity = data.quantity;
+      return { id: a, quantity };
+    });
+    const add = (amount: number) =>
+      POST(request({ productId, productVariantId: a, quantity: amount }));
+    expect((await add(100)).status).toBe(400);
+    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+    expect((await add(98)).status).toBe(200);
+    expect((await add(1)).status).toBe(200);
+    expect(quantity).toBe(99);
+    for (const amount of [1, 99]) {
+      expect((await add(amount)).status).toBe(400);
+      expect(quantity).toBe(99);
+    }
+    mocks.prisma.cartItem.findFirst.mockImplementation(async () => ({
+      id: a,
+      quantity,
+      productVariantId: a,
+      productVariant: variant,
+      product: { id: productId, isArchived: false },
+    }));
+    mocks.prisma.cartItem.updateMany.mockImplementation(async ({ data }) => {
+      quantity = data.quantity;
+      return { count: 1 };
+    });
+    expect((await PATCH(request({ quantity: 100 }), context)).status).toBe(400);
+    for (const amount of [99, 98, 1]) {
+      const response = await PATCH(request({ quantity: amount }), context);
+      expect(response.status).toBe(200);
+      expect((await response.json()).cartItem.quantity).toBe(amount);
+    }
+    expect((await add(98)).status).toBe(200);
+    expect(quantity).toBe(99);
+    expect(mocks.prisma.cartItem.findUnique).toHaveBeenCalledWith({
+      where: {
+        userId_cartLineKey: { userId: "owner", cartLineKey: `variant:${a}` },
+      },
+    });
+    expect(mocks.prisma.cartItem.updateMany).toHaveBeenCalledWith({
+      where: { id: a, userId: "owner" },
+      data: { quantity: 1 },
+    });
+    expect(mocks.prisma.$executeRaw).toHaveBeenCalledTimes(8);
+    expect(mocks.prisma.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.prisma.product.findUnique.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("still checks accumulated stock below the quantity limit", async () => {
+    mocks.prisma.cartItem.findUnique.mockResolvedValue({ id: a, quantity: 3 });
+    expect(
+      (await POST(request({ productId, productVariantId: a, quantity: 1 })))
+        .status,
+    ).toBe(400);
+    expect(mocks.prisma.cartItem.update).not.toHaveBeenCalled();
+  });
+
   it("removes only an owned line and preserves the already-absent 404 response", async () => {
     mocks.prisma.cartItem.deleteMany.mockResolvedValueOnce({ count: 1 });
     expect((await DELETE(request(null), context)).status).toBe(200);

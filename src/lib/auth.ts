@@ -1,10 +1,17 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { env } from "~/env";
 import { storeConfig } from "~/config/store";
 import { prisma } from "~/lib/prisma";
 import { clientIpOptions } from "~/lib/client-ip";
 import { sendAuthEmail } from "~/server/email";
+import { phoneSchema } from "~/lib/phone";
+import {
+  authProfileCreateSchema,
+  authProfileUpdateSchema,
+  profileSchema,
+} from "~/lib/profile-validation";
 
 const googleProvider =
   env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
@@ -54,6 +61,38 @@ export const auth = betterAuth({
         type: "string",
         required: false,
         input: true,
+        validator: { input: phoneSchema },
+      },
+    },
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user, context) => {
+          const schema =
+            context?.path === "/sign-up/email"
+              ? profileSchema
+              : authProfileCreateSchema;
+          const parsed = schema.safeParse(user);
+          if (!parsed.success) {
+            throw new APIError("BAD_REQUEST", {
+              message: "Invalid profile data.",
+            });
+          }
+          return { data: { ...user, ...parsed.data } };
+        },
+      },
+      update: {
+        before: async (user) => {
+          const parsed = authProfileUpdateSchema.safeParse(user);
+          if (!parsed.success) {
+            throw new APIError("BAD_REQUEST", {
+              message: "Invalid profile data.",
+            });
+          }
+          return { data: { ...user, ...parsed.data } };
+        },
       },
     },
   },

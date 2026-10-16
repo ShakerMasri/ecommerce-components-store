@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { MAX_CART_ITEM_QUANTITY } from "~/lib/cart";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
 
 type AddToCartControlsProps = {
@@ -29,7 +30,10 @@ export function AddToCartControls({
   >("idle");
   const [message, setMessage] = useState("");
 
-  const maxClientQuantity = stock ?? 99;
+  const maxClientQuantity = Math.min(
+    stock ?? MAX_CART_ITEM_QUANTITY,
+    MAX_CART_ITEM_QUANTITY,
+  );
   const isOutOfStock = !isInStock;
   const isLoading = status === "loading";
   const isDisabled = isLoading || isOutOfStock || Boolean(disabledReason);

@@ -1,6 +1,12 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useAppPreferences } from "~/components/providers/AppPreferencesProvider";
 import { CategoryTabs } from "./CategoryTabs";
 import { ProductCard } from "./ProductCard";
@@ -45,6 +51,13 @@ type ProductsResponse = {
 
 type FetchMode = "replace" | "append";
 
+const emptyPagination: ProductsPagination = {
+  page: 1,
+  pageSize: PRODUCTS_PAGE_SIZE,
+  hasMore: false,
+  nextPage: null,
+};
+
 function buildProductsUrl(options: {
   category: string | null;
   search: string;
@@ -75,23 +88,32 @@ export function ProductListingClient() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
-  const [pagination, setPagination] = useState<ProductsPagination>({
-    page: 1,
-    pageSize: PRODUCTS_PAGE_SIZE,
-    hasMore: false,
-    nextPage: null,
-  });
+  const [pagination, setPagination] = useState(emptyPagination);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const activeRequest = useRef<AbortController | null>(null);
+
+  const cancelRequest = useCallback(() => {
+    activeRequest.current?.abort();
+    activeRequest.current = null;
+  }, []);
+
+  function changeCategory(category: string | null) {
+    if (category !== selectedCategory) cancelRequest();
+    setSelectedCategory(category);
+  }
 
   const fetchProducts = useCallback(
-    async (page: number, mode: FetchMode, signal?: AbortSignal) => {
-      if (mode === "replace") {
-        setIsLoading(true);
-      } else {
-        setIsLoadingMore(true);
-      }
+    async (page: number, mode: FetchMode) => {
+      cancelRequest();
+      const controller = new AbortController();
+      activeRequest.current = controller;
+      const isCurrent = () =>
+        activeRequest.current === controller && !controller.signal.aborted;
+      setIsLoading(mode === "replace");
+      setIsLoadingMore(mode === "append");
+      if (mode === "replace") setPagination(emptyPagination);
 
       setErrorMessage("");
 
@@ -102,10 +124,11 @@ export function ProductListingClient() {
             search: appliedSearch,
             page,
           }),
-          { signal },
+          { signal: controller.signal },
         );
 
         const data = (await response.json()) as ProductsResponse;
+        if (!isCurrent()) return;
 
         if (!response.ok) {
           if (mode === "replace") {
@@ -132,6 +155,7 @@ export function ProductListingClient() {
           setPagination(data.pagination);
         }
       } catch (error) {
+        if (!isCurrent()) return;
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
@@ -142,14 +166,15 @@ export function ProductListingClient() {
 
         setErrorMessage(t.products.failedToConnect);
       } finally {
-        if (mode === "replace") {
+        if (isCurrent()) {
+          activeRequest.current = null;
           setIsLoading(false);
-        } else {
           setIsLoadingMore(false);
         }
       }
     },
     [
+      cancelRequest,
       appliedSearch,
       selectedCategory,
       t.products.failedToConnect,
@@ -158,14 +183,9 @@ export function ProductListingClient() {
   );
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    void fetchProducts(1, "replace", controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [fetchProducts]);
+    void fetchProducts(1, "replace");
+    return cancelRequest;
+  }, [fetchProducts, cancelRequest]);
 
   const hasActiveFilters =
     selectedCategory !== null || appliedSearch.trim() !== "";
@@ -180,6 +200,7 @@ export function ProductListingClient() {
       return;
     }
 
+    cancelRequest();
     setAppliedSearch(nextSearch);
   }
 
@@ -249,7 +270,7 @@ export function ProductListingClient() {
         <CategoryTabs
           categories={categories}
           selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
+          onCategoryChange={changeCategory}
           allLabel={t.products.allProducts}
           categoryLabel={t.products.categoryLabel}
           allCategoriesLabel={t.products.allCategories}
@@ -270,8 +291,21 @@ export function ProductListingClient() {
       </div>
 
       {errorMessage ? (
-        <div className="rounded-[1.5rem] border border-[var(--danger-ink)] bg-[var(--danger-soft)] p-5 text-sm font-semibold text-[var(--danger-ink)]">
-          {errorMessage}
+        <div
+          role="alert"
+          className="rounded-[1.5rem] border border-[var(--danger-ink)] bg-[var(--danger-soft)] p-5 text-sm font-semibold text-[var(--danger-ink)]"
+        >
+          <p>{errorMessage}</p>
+          {products.length === 0 && !pagination.hasMore ? (
+            <button
+              type="button"
+              onClick={() => void fetchProducts(1, "replace")}
+              disabled={isLoading}
+              className="mt-3 min-h-11 rounded-full border border-current px-5 py-2 focus-visible:ring-4 focus-visible:ring-[var(--accent-soft)] focus-visible:outline-none disabled:opacity-60"
+            >
+              {t.cart.tryAgain}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -295,6 +329,7 @@ export function ProductListingClient() {
             <button
               type="button"
               onClick={() => {
+                cancelRequest();
                 setSelectedCategory(null);
                 setSearchInput("");
                 setAppliedSearch("");
